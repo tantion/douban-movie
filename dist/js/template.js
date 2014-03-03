@@ -1,0 +1,1 @@
+define(function(require,a,b){"use strict";function c(){!location.href.match(/^http:\/\/music\.douban\.com\/musician\/\d+/)}require("jquery");b.exports={init:c}});

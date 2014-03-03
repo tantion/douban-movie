@@ -1,0 +1,1 @@
+!function(a,b){function c(c){if(c){c=c.alias;for(var d in c)(function(c){c.src&&(c.deps&&define(c.src,c.deps),define(d,[a.resolve(c.src)],function(){var a=c.exports;return"function"==typeof a?a():"string"==typeof a?b[a]:a}))})(c[d])}}a.on("config",c),c(a.config.data)}(seajs,"undefined"==typeof global?this:global);

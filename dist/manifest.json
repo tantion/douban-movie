@@ -1,0 +1,40 @@
+{
+    "manifest_version": 2,
+
+    "name": "豆瓣FM音乐助手",
+    "description": "让豆瓣FM支持下载MP3和封面图片，可以播放红心、专辑、节目中的歌曲以及搜索歌曲。",
+    "version": "0.1.0",
+
+    "permissions": [
+        "webRequest",
+        "webRequestBlocking",
+        "http://douban.fm/",
+        "http://*.douban.com/",
+        "http://weibo.com/",
+        "http://*.weibo.com/"
+     ],
+    "icons": {
+        "128": "icon.png",
+        "16": "icon.png",
+        "32": "icon.png",
+        "48": "icon.png"
+    },
+    "web_accessible_resources": [
+        "config.js",
+        "seajs/*.*",
+        "js/*.*",
+        "lib/*.*",
+        "images/*.*"
+    ],
+    "background": {
+        "scripts": [
+            "background.js"
+        ]
+    },
+    "content_scripts": [{
+        "matches": ["http://douban.fm/*", "http://music.douban.com/*"],
+        "css":     ["doubanfm.css"],
+        "js":      ["doubanfm.js"],
+        "run_at":  "document_end"
+    }]
+}
