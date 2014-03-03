@@ -46,7 +46,7 @@ module.exports = function(grunt) {
         files: {
           'src/manifest.json': 'src/manifest.json',
           'src/config.js': 'src/config.js',
-          'src/doubanfm.js': 'src/doubanfm.js'
+          'src/bootstrap.js': 'src/bootstrap.js'
         }
       }
     },
