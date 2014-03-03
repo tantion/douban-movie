@@ -1,6 +1,6 @@
-# Douban FM Improve
+# Douban Movie Improve
 
-A chrome extension for Douban FM
+A chrome extension for Douban Movie
 
 ## Change Log
 

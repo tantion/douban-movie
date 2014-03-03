@@ -2,7 +2,7 @@
     "manifest_version": 2,
 
     "name": "豆瓣电影助手",
-    "description": "让豆瓣FM支持下载MP3和封面图片，可以播放红心、专辑、节目中的歌曲以及搜索歌曲。",
+    "description": "让豆瓣电影支持下载bt种子。",
     "version": "0.1.0",
 
     "permissions": [
