@@ -5,32 +5,36 @@ define(function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
-        providers = [require('js/bttiantang'), require('js/btzhijia')];
+        async = require('async'),
+        providers = [require('js/bt-tiantang')];
 
     var BtService = function () {
-        this.subject = null;
     };
 
     BtService.prototype = {
 
         constructor: BtService,
 
+        // 按照bt提供者循序搜索，当搜到时返回接口
         search: function (subject) {
-            this.subject = subject;
+            var dfd = new $.Deferred(),
+                pds = providers.slice(0);
 
-            var dfd = new $.Deferred();
-                pds = providers.slice(0),
-                pd = null;
-
-            if (pds.length) {
-                pd = pds.unshift();
+            async.eachSeries(pds, function (pd, func) {
                 pd.search(subject)
-                .done(function (items) {
-                    
+                .done(function (bt) {
+                    func(bt);
+                })
+                .fail(function () {
+                    func();
                 });
-            }
-
-            dfd.resolve(subject);
+            }, function (bt) {
+                if (bt) {
+                    dfd.resolve(bt);
+                } else {
+                    dfd.reject();
+                }
+            });
 
             return dfd.promise();
         }

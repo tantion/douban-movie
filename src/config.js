@@ -8,6 +8,14 @@ seajs.config({
         'jquery': {
             src: 'lib/jquery.js',
             exports: 'noConfictJQuery'
+        },
+        'async': {
+            src: 'lib/async.js',
+            exports: 'async'
+        },
+        'mustache': {
+            src: 'lib/mustache.js',
+            exports: 'Mustache'
         }
     },
 

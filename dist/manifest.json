@@ -9,7 +9,8 @@
         "webRequest",
         "webRequestBlocking",
         "http://*.douban.com/",
-        "http://*.weibo.com/"
+        "http://bbs.1lou.com/",
+        "http://www.bttiantang.com/"
      ],
     "icons": {
         "128": "icon.png",
@@ -30,7 +31,7 @@
         ]
     },
     "content_scripts": [{
-        "matches": ["http://movie.douban.com/*", "http://music.douban.com/*"],
+        "matches": ["http://movie.douban.com/*"],
         "css":     ["bootstrap.css"],
         "js":      ["bootstrap.js"],
         "run_at":  "document_end"
