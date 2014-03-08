@@ -4,6 +4,6 @@ A chrome extension for Douban Movie
 
 ## Change Log
 
-- v0.1 - July 15 2013
-    - Can download mp3 and album picture.
-    - Can loop play.
+- v0.5.0 - March 9 2014
+    - 从www.bttiantang.com加载种子地址
+    - 百度云加载下载地址
