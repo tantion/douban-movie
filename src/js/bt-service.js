@@ -22,10 +22,14 @@ define(function(require, exports, module) {
 
             async.eachSeries(pds, function (pd, func) {
                 pd.search(subject)
+                .progress(function (msg) {
+                    dfd.notify(msg);
+                })
                 .done(function (bt) {
                     func(bt);
                 })
                 .fail(function () {
+                    dfd.notify('没找到资源，切换到下一个服务器。');
                     func();
                 });
             }, function (bt) {

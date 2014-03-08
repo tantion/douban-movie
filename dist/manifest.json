@@ -9,8 +9,8 @@
         "webRequest",
         "webRequestBlocking",
         "http://*.douban.com/",
-        "http://bbs.1lou.com/",
-        "http://www.bttiantang.com/"
+        "http://*.1lou.com/",
+        "http://*.bttiantang.com/"
      ],
     "icons": {
         "128": "icon.png",

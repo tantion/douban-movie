@@ -4,51 +4,45 @@
 (function () {
     "use strict";
 
-    function allowOriginAccess (responseHeaders, value) {
-        var origin = "Access-Control-Allow-Origin";
-        var originFined = false;
-        var credentials = "Access-Control-Allow-Credentials";
-        var credentialsFinded = false;
-        var header = null;
+    function extendHeaders (headers, o) {
+        var header = null,
+            finded = false;
 
-        for (var i = 0, len = responseHeaders.length; i < len; i += 1) {
-            header = responseHeaders[i];
-            if (header.name === origin) {
-                header.value += "; " + value;
-                originFined = true;
-            }
-            if (header.name === credentials) {
-                header.value = 'true';
-                credentialsFinded = true;
+        for (var i = 0, len = headers.length; i < len; i += 1) {
+            header = headers[i];
+            if (header.name === o.name) {
+                header.name = o.value;
+                finded = true;
             }
         }
 
-        if (!originFined) {
-            responseHeaders.push({
-                name: origin,
-                value: value
-            });
-        }
-        if (!credentialsFinded) {
-            responseHeaders.push({
-                name: credentials,
-                value: 'true'
-            });
+        if (!finded) {
+            headers.push(o);
         }
     }
 
     chrome.webRequest.onHeadersReceived.addListener(
         function(details) {
-
             var responseHeaders = details.responseHeaders;
 
-            allowOriginAccess(responseHeaders, 'http://douban.fm');
+            extendHeaders(responseHeaders, {
+                name: 'Access-Control-Allow-Origin',
+                value: 'http://movie.douban.com'
+            });
+            extendHeaders(responseHeaders, {
+                name: 'Access-Control-Allow-Credentials',
+                value: 'true'
+            });
 
             return {
                 responseHeaders: responseHeaders
             };
         },
-        {urls: ["http://music.douban.com/subject/*"]},
+        {urls: [
+            "http://www.bttiantang.com/s.php?*",
+            "http://www.bttiantang.com/subject/*",
+            "http://www.bttiantang.com/download.php*"
+        ]},
         ["blocking", "responseHeaders"]
     );
 

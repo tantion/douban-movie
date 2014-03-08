@@ -16,6 +16,10 @@ seajs.config({
         'mustache': {
             src: 'lib/mustache.js',
             exports: 'Mustache'
+        },
+        'purl': {
+            src: 'lib/purl.js',
+            exports: 'purl'
         }
     },
 

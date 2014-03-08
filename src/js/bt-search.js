@@ -26,18 +26,18 @@ define(function(require, exports, module) {
                    '<dl class="movie-improve-bt-dl">' +
                       '<dt class="movie-improve-bt-title">{{title}}<a data-index="{{index}}" class="movie-improve-bt-download" href="javascript:">下载</a></dt>' +
                       '{{#files}}' +
-                      '<dd class="movie-improve-bt-desc">{{title}} - {{size}}</dd>' +
+                      '<dd class="movie-improve-bt-desc">{{title}}</dd>' +
                       '{{/files}}' +
                    '</dl>' +
                    '{{/items}}' +
                '</div>';
 
-    function renderItems (items) {
-        $.each(items, function (index, item) {
+    function renderItems (data) {
+        $.each(data.items, function (index, item) {
             item.index = index;
         });
 
-        var content = m.render(tmpl, {items: items}),
+        var content = m.render(tmpl, data),
             $content = $(content);
 
         $content.on('click', '.movie-improve-bt-download', function (evt) {
@@ -45,12 +45,9 @@ define(function(require, exports, module) {
 
             var $btn = $(this),
                 index = parseInt($btn.data('index'), 10),
-                item = items[index];
+                item = data.items[index];
 
-            item.url()
-            .done(function (url) {
-                location.href = url;
-            })
+            item.download()
             .fail(function () {
                 $btn.attr('title', '没有找到下载地址。').tipsy({gravity: 'w'}).tipsy('show');
             });
@@ -62,9 +59,11 @@ define(function(require, exports, module) {
 
     function searchBT () {
         service.search(serializeSubject())
-        .done(function (bt) {
-            var items = bt.items(),
-                contents = renderItems(items);
+        .progress(function (msg) {
+            dialog.setContent(msg);
+        })
+        .done(function (data) {
+            var contents = renderItems(data);
 
             dialog.setContent(contents);
         })
