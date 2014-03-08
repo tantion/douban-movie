@@ -1,4 +1,11 @@
 
-.movie-template-css {
-    zoom: 1;
+.movie-improve-bt-desc {
+    font-size: 11px;
+    padding-left: 2em;
+}
+.movie-improve-bt-desc strong {
+    font-weight: bold;
+}
+.movie-improve-bt-dl {
+    margin-bottom: 6px;
 }

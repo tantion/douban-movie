@@ -39,11 +39,18 @@ define(function(require, exports, module) {
     function _filterFiles (file) {
         var $file = $(file),
             $size = $file.find('small'),
-            title = '';
+            title = '',
+            size = '';
 
         $size.remove();
 
-        title = $.trim($file.text()) + ' ' + $.trim($size.text());
+        title = $.trim($file.text());
+        title = title.replace(/\.(\w+)$/i, '.<strong>$1</strong>');
+
+        size = $.trim($size.text());
+        size = size ? '<strong>' + size + '</strong>' : '';
+
+        title = size ? (title + ' ' + size) : title;
 
         return {title: title};
     }
@@ -55,7 +62,13 @@ define(function(require, exports, module) {
         if (subjectUrl) {
             dfd.resolve(subjectUrl);
         } else {
-            $.get('http://www.bttiantang.com/s.php?q=#imdb#'.replace('#imdb#', imdb))
+            $.ajax({
+                url: 'http://www.bttiantang.com/s.php?q=#imdb#'.replace('#imdb#', imdb),
+                type: 'GET',
+                xhrFields: {
+                    withCredentials: true
+                }
+            })
             .done(function (html) {
                 var matches = html.match(/<div class="litpic"><a href="(\/subject\/\d+\.html)"/i),
                     subjectUrl = '';
@@ -87,7 +100,13 @@ define(function(require, exports, module) {
         if (data) {
             dfd.resolve(data);
         } else {
-            $.get(subjectUrl)
+            $.ajax({
+                url: subjectUrl,
+                type: 'GET',
+                xhrFields: {
+                    withCredentials: true
+                }
+            })
             .done(function (html) {
                 html = html.replace(/src=/ig, 'data-src=');
                 var $html = $($.parseHTML(html)),

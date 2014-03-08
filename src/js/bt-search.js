@@ -24,9 +24,9 @@ define(function(require, exports, module) {
     var tmpl = '<div class="movie-improve-bt-container">' +
                    '{{#items}}' +
                    '<dl class="movie-improve-bt-dl">' +
-                      '<dt class="movie-improve-bt-title">{{title}}<a data-index="{{index}}" class="movie-improve-bt-download" href="javascript:">下载</a></dt>' +
+                      '<dt class="movie-improve-bt-title"><a data-index="{{index}}" title="点击下载" class="movie-improve-bt-download" href="javascript:">{{title}}</a></dt>' +
                       '{{#files}}' +
-                      '<dd class="movie-improve-bt-desc">{{title}}</dd>' +
+                      '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
                       '{{/files}}' +
                    '</dl>' +
                    '{{/items}}' +
