@@ -57,21 +57,26 @@ define(function(require, exports, module) {
 
     function searchSubject (imdb) {
         var dfd = new $.Deferred(),
-            subjectUrl = SUBJECT_CACHE[imdb];
+            subjectUrl = '';
 
-        if (subjectUrl) {
-            dfd.resolve(subjectUrl);
+        if (SUBJECT_CACHE.hasOwnProperty(imdb)) {
+            subjectUrl = SUBJECT_CACHE[imdb];
+            if (subjectUrl) {
+                dfd.resolve(subjectUrl);
+            } else {
+                dfd.reject();
+            }
         } else {
             $.ajax({
                 url: 'http://www.bttiantang.com/s.php?q=#imdb#'.replace('#imdb#', imdb),
                 type: 'GET',
+                timeout: 12 * 1000,
                 xhrFields: {
                     withCredentials: true
                 }
             })
             .done(function (html) {
-                var matches = html.match(/<div class="litpic"><a href="(\/subject\/\d+\.html)"/i),
-                    subjectUrl = '';
+                var matches = html.match(/<div class="litpic"><a href="(\/subject\/\d+\.html)"/i);
 
                 if (matches && matches.length > 1) {
                     subjectUrl = matches[1];
@@ -82,6 +87,7 @@ define(function(require, exports, module) {
                     SUBJECT_CACHE[imdb] = subjectUrl;
                     dfd.resolve(subjectUrl);
                 } else {
+                    SUBJECT_CACHE[imdb] = subjectUrl;
                     dfd.reject();
                 }
             })
@@ -95,14 +101,20 @@ define(function(require, exports, module) {
 
     function searchItems (subjectUrl) {
         var dfd = new $.Deferred(),
-            data = ITEMS_CACHE[subjectUrl];
+            data = null;
 
-        if (data) {
-            dfd.resolve(data);
+        if (ITEMS_CACHE.hasOwnProperty(subjectUrl)) {
+            data = ITEMS_CACHE[subjectUrl];
+            if (data) {
+                dfd.resolve(data);
+            } else {
+                dfd.reject();
+            }
         } else {
             $.ajax({
                 url: subjectUrl,
                 type: 'GET',
+                timeout: 12 * 1000,
                 xhrFields: {
                     withCredentials: true
                 }
@@ -131,6 +143,7 @@ define(function(require, exports, module) {
                     ITEMS_CACHE[subjectUrl] = data;
                     dfd.resolve(data);
                 } else {
+                    ITEMS_CACHE[subjectUrl] = data;
                     dfd.reject();
                 }
             })
