@@ -6,7 +6,10 @@ define(function(require, exports, module) {
 
     var $ = require('jquery'),
         async = require('async'),
-        providers = [require('js/bt-tiantang')];
+        providers = [
+            require('js/bt-tiantang'),
+            require('js/bt-baidu')
+        ];
 
     var BtService = function () {
     };

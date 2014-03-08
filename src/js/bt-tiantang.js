@@ -8,6 +8,7 @@ define(function(require, exports, module) {
     var $ = require('jquery'),
         purl = require('purl'),
         $iframe = null,
+        timeout = 20 * 1000,
         SUBJECT_CACHE = {},
         ITEMS_CACHE = {};
 
@@ -70,7 +71,7 @@ define(function(require, exports, module) {
             $.ajax({
                 url: 'http://www.bttiantang.com/s.php?q=#imdb#'.replace('#imdb#', imdb),
                 type: 'GET',
-                timeout: 12 * 1000,
+                timeout: timeout,
                 xhrFields: {
                     withCredentials: true
                 }
@@ -114,7 +115,7 @@ define(function(require, exports, module) {
             $.ajax({
                 url: subjectUrl,
                 type: 'GET',
-                timeout: 12 * 1000,
+                timeout: timeout,
                 xhrFields: {
                     withCredentials: true
                 }
@@ -170,8 +171,8 @@ define(function(require, exports, module) {
                 dfd.notify('马上就好，正在加载BT地址...');
 
                 searchItems(subjectUrl)
-                .done(function (items) {
-                    dfd.resolve(items);
+                .done(function (data) {
+                    dfd.resolve(data);
                 })
                 .fail(function () {
                     dfd.reject();

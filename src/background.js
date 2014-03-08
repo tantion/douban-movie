@@ -41,7 +41,9 @@
         {urls: [
             "http://www.bttiantang.com/s.php?*",
             "http://www.bttiantang.com/subject/*",
-            "http://www.bttiantang.com/download.php*"
+            "http://www.bttiantang.com/download.php*",
+            "http://yun.baidu.com/share/link*",
+            "http://www.baidu.com/s*"
         ]},
         ["blocking", "responseHeaders"]
     );

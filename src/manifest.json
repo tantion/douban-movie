@@ -9,7 +9,7 @@
         "webRequest",
         "webRequestBlocking",
         "http://*.douban.com/",
-        "http://*.1lou.com/",
+        "http://*.baidu.com/",
         "http://*.bttiantang.com/"
      ],
     "icons": {

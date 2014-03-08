@@ -13,8 +13,10 @@ define(function(require, exports, module) {
     function serializeSubject () {
         var subject = {},
             $content = $('#content'),
-            $info = $('#info');
+            $info = $('#info'),
+            title = $.trim($('#content .related-info h2').text());
 
+        subject.title2 = title.replace(/^(.+)的剧情简介.*$/, '$1');
         subject.title = $.trim($content.find('[property="v:itemreviewed"]').text());
         subject.imdb = $.trim($info.find('a[href^="http://www.imdb.com/title/tt"]').text());
 
