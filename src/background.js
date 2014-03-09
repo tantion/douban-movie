@@ -11,7 +11,7 @@
         for (var i = 0, len = headers.length; i < len; i += 1) {
             header = headers[i];
             if (header.name === o.name) {
-                header.name = o.value;
+                header.value = o.value;
                 finded = true;
             }
         }
@@ -44,9 +44,10 @@
             "http://www.bttiantang.com/download.php*",
             "http://yun.baidu.com/share/link*",
             "http://www.baidu.com/s*",
+            "http://imax.im/api/movies/show.json*",
+            "http://imax.im/movies/*",
             "http://btmee.net/search*"
         ]},
         ["blocking", "responseHeaders"]
     );
-
 })();

@@ -11,6 +11,7 @@ define(function(require, exports, module) {
         providers = [
             require('js/bt-tiantang'),
             require('js/bt-mee'),
+            require('js/bt-imax'),
             require('js/bt-baidu')
         ];
 

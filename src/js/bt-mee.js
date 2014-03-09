@@ -47,22 +47,17 @@ define(function(require, exports, module) {
                         seed = $.trim($item.find('.seed').text()),
                         mag = $.trim($item.find('.magDown').attr('href')),
                         ed2k = $.trim($item.find('.ed2kDown').attr('ed2k')),
-                        title = [],
+                        title = '',
                         href = '';
 
                     if (cat) {
-                        title.push(cat);
-                    }
-                    if (name) {
-                        title.push(name);
+                        title = '[' + cat + ']';
                     }
                     if (seed) {
-                        title.push('<strong>' + seed + '</strong>');
-                    }
-                    if (title.length > 1) {
-                        title = '[' + title.join('][') + ']';
+                        title += '[<strong>' + seed + '</strong>]';
                     }
 
+                    title += name;
                     href = mag ? mag : ed2k;
 
                     return {

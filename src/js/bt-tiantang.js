@@ -110,7 +110,8 @@ define(function(require, exports, module) {
                 }
             })
             .done(function (html) {
-                var matches = html.match(/<div class="litpic"><a href="(\/subject\/\d+\.html)"/i);
+                var matches = html.match(/<div class="litpic"><a href="(\/subject\/\d+\.html)"/i),
+                    subjectUrl = '';
 
                 if (matches && matches.length > 1) {
                     subjectUrl = matches[1];
@@ -188,8 +189,7 @@ define(function(require, exports, module) {
 
     function search (subject) {
         var dfd = new $.Deferred(),
-            imdb = '' + subject.imdb,
-            url = '';
+            imdb = '' + subject.imdb;
 
         if (!imdb) {
             dfd.reject();

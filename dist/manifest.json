@@ -3,15 +3,17 @@
 
     "name": "豆瓣电影助手",
     "description": "让豆瓣电影支持下载bt种子。",
-    "version": "0.7.0",
+    "version": "0.9.0",
 
     "permissions": [
         "webRequest",
         "webRequestBlocking",
         "http://*.douban.com/",
         "http://*.baidu.com/",
+        "http://*.bttiantang.com/",
         "http://btmee.net/",
-        "http://*.bttiantang.com/"
+        "http://imax.im/",
+        "http://shooter.cn/"
      ],
     "icons": {
         "128": "icon.png",
