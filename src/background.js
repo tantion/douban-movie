@@ -47,6 +47,9 @@
             "http://imax.im/api/movies/show.json*",
             "http://imax.im/movies/*",
             "http://btmee.net/search*",
+            "http://www.shooter.cn/xml/sub/*",
+            "http://www.shooter.cn/files/file3.php*",
+            "http://www.shooter.cn/a/loadmain.js",
             "http://www.shooter.cn/search*"
         ]},
         ["blocking", "responseHeaders"]

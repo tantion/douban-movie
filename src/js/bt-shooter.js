@@ -7,11 +7,140 @@ define(function(require, exports, module) {
 
     var $ = require('jquery'),
         m = require('mustache'),
+        sht = require('js/util-decodefile.js'),
         timeout = 30 * 1000,
         SUBJECT_CACHE = {},
+        fileHash = '',
+        FILEID_CACHE = {},
         ITEMS_CACHE = {};
 
+    function loadHash () {
+        var dfd = new $.Deferred();
+
+        if (fileHash) {
+            dfd.resolve(fileHash);
+        } else {
+            $.ajax({
+                type: 'GET',
+                url: 'http://www.shooter.cn/a/loadmain.js',
+                timeout: timeout,
+                dataType: 'html'
+            })
+            .done(function (text) {
+                var matches = text.match(/shtg_filehash ?\+?= ?"\w+";/ig);
+                if (matches) {
+                    fileHash = $.map(matches, function (v) {
+                        return v.replace(/^.+"(\w+)";$/, '$1');
+                    }).join('');
+
+                    if (fileHash) {
+                        dfd.resolve(fileHash);
+                    } else {
+                        dfd.reject();
+                    }
+                }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+        }
+
+        return dfd.promise();
+    }
+
+    function loadFileid (url) {
+        var dfd = new $.Deferred();
+
+        if (url) {
+            if (FILEID_CACHE.hasOwnProperty(url)) {
+                if (FILEID_CACHE[url]) {
+                    dfd.resolve(FILEID_CACHE[url]);
+                } else {
+                    dfd.reject();
+                }
+            } else {
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    timeout: timeout,
+                    dataType: 'html'
+                })
+                .done(function (html) {
+                    var matches = html.match(/gFileidToBeDownlaod = (\d+);/i),
+                        id = 0;
+
+                    if (matches && matches[1]) {
+                        id = matches[1];
+                        FILEID_CACHE[url] = id;
+                        dfd.resolve(id);
+                    } else {
+                        FILEID_CACHE[url] = id;
+                        dfd.reject();
+                    }
+                })
+                .fail(function () {
+                    dfd.reject();
+                });
+            }
+        } else {
+            dfd.reject();
+        }
+
+        return dfd.promise();
+    }
+
+    function requestFilepath (url) {
+        var path = '',
+            dfd = new $.Deferred();
+
+        $.when(loadFileid(url), loadHash())
+        .done(function (fileid, filehash) {
+            var tokenUrl = 'http://www.shooter.cn/files/file3.php?hash=' + filehash + '&fileid=' + fileid;
+            $.ajax({
+                url: tokenUrl,
+                type: 'GET',
+                dataType: 'html'
+            })
+            .done(function (code) {
+                if (code && code.indexOf("ERR:") < 0) {
+                    var filepath = sht.decode(code);
+                    if (filepath) {
+                        filepath = 'http://file1.shooter.cn' + filepath;
+                        dfd.resolve(filepath);
+                    } else {
+                        dfd.reject();
+                    }
+                } else {
+                    dfd.reject();
+                }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+        })
+        .fail(function () {
+            dfd.reject();
+        });
+
+        return dfd.promise();
+    }
+
     function download (url) {
+        var dfd = new $.Deferred();
+
+        requestFilepath(url)
+        .done(function (filepath) {
+            if (filepath) {
+                location.href = filepath;
+            } else {
+                dfd.reject();
+            }
+        })
+        .fail(function () {
+            dfd.reject();
+        });
+
+        return dfd.promise();
     }
 
     var tmpl = '{{#items}}' +
@@ -105,7 +234,7 @@ define(function(require, exports, module) {
 
                     if (name.search(title) > -1) {
                         return {
-                            href: 'http://shooter.cn' + $item.attr('href'),
+                            href: 'http://www.shooter.cn' + $item.attr('href'),
                             title: name,
                             desc: desc
                         };

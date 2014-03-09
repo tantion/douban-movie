@@ -83,7 +83,7 @@ define(function(require, exports, module) {
     var tmpl = '{{#items}}' +
                '<dl class="movie-improve-bt-dl">' +
                   '<dt class="movie-improve-bt-title">' +
-                      '<a title="点击打开种子下载页面" target="_baiduyun" href="{{href}}">{{title}}</a>' +
+                      '<a title="点击打开种子下载页面" target="_blank" href="{{href}}">{{title}}</a>' +
                   '</dt>' +
                   '{{#files}}' +
                   '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
