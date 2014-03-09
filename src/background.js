@@ -43,7 +43,8 @@
             "http://www.bttiantang.com/subject/*",
             "http://www.bttiantang.com/download.php*",
             "http://yun.baidu.com/share/link*",
-            "http://www.baidu.com/s*"
+            "http://www.baidu.com/s*",
+            "http://btmee.net/search*"
         ]},
         ["blocking", "responseHeaders"]
     );

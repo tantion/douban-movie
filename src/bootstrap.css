@@ -3,6 +3,7 @@
     font-size: 11px;
     padding-left: 2em;
 }
+.movie-improve-bt-title strong,
 .movie-improve-bt-desc strong {
     font-weight: bold;
 }

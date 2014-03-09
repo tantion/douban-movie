@@ -10,6 +10,7 @@ define(function(require, exports, module) {
         m = require('mustache'),
         providers = [
             require('js/bt-tiantang'),
+            require('js/bt-mee'),
             require('js/bt-baidu')
         ];
 

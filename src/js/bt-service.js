@@ -1,5 +1,6 @@
 //
 // bt search service
+// 已经不使用
 //
 define(function(require, exports, module) {
     "use strict";
