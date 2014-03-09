@@ -9,3 +9,23 @@
 .movie-improve-bt-dl {
     margin-bottom: 6px;
 }
+
+.movie-improve-nav.active {
+    color: black;
+}
+.movie-improve-nav.active:hover {
+    background: transparent;
+}
+.movie-improve-tab {
+    display: none;
+}
+.movie-improve-tab.active {
+    display: block;
+}
+
+.movie-improve-nav-container {
+    font-size: 13px;
+    border-bottom: 1px solid silver;
+    padding-bottom: 3px;
+    margin-bottom: 8px;
+}

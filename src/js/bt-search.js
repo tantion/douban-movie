@@ -8,7 +8,10 @@ define(function(require, exports, module) {
     var $ = require('jquery'),
         dialog = null,
         m = require('mustache'),
-        service = require('js/bt-service');
+        providers = [
+            require('js/bt-tiantang'),
+            require('js/bt-baidu')
+        ];
 
     function serializeSubject () {
         var subject = {},
@@ -23,58 +26,64 @@ define(function(require, exports, module) {
         return subject;
     }
 
-    var tmpl = '<div class="movie-improve-bt-container">' +
-                   '{{#items}}' +
-                   '<dl class="movie-improve-bt-dl">' +
-                      '<dt class="movie-improve-bt-title"><a data-index="{{index}}" title="点击下载" class="movie-improve-bt-download" href="javascript:">{{title}}</a></dt>' +
-                      '{{#files}}' +
-                      '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
-                      '{{/files}}' +
-                   '</dl>' +
-                   '{{/items}}' +
-               '</div>';
+    function initDialog () {
+        var tmpl = '<div class="movie-improve-bt-container">' +
+                       '<div class="movie-improve-nav-container">' +
+                           '{{#tabs}}' +
+                           '{{#index}}&nbsp;|&nbsp;{{/index}}' +
+                           '<a class="movie-improve-nav" data-index="{{index}}" href="#movie-improve-tab-{{index}}">{{name}}</a>' +
+                           '{{/tabs}}' +
+                       '</div>' +
+                       '<div class="movie-improve-tab-container">' +
+                           '{{#tabs}}' +
+                           '<div class="movie-improve-tab" id="movie-improve-tab-{{index}}"></div>' +
+                           '{{/tabs}}' +
+                       '</div>' +
+                   '</div>',
+            subject = serializeSubject(),
+            tabs = null,
+            $content = null;
 
-    function renderItems (data) {
-        $.each(data.items, function (index, item) {
-            item.index = index;
+        tabs = $.map(providers, function (pd, index) {
+            return {
+                name: pd.name || '未名',
+                index: index
+            };
         });
 
-        var content = m.render(tmpl, data),
-            $content = $(content);
+        $content = $(m.render(tmpl, {tabs: tabs}));
 
-        $content.on('click', '.movie-improve-bt-download', function (evt) {
+        $content
+        .on('click', '.movie-improve-nav', function (evt) {
             evt.preventDefault();
 
-            var $btn = $(this),
-                index = parseInt($btn.data('index'), 10),
-                item = data.items[index];
+            var $nav = $(this),
+                index = $nav.data('index'),
+                $target = $content.find($nav.attr('href')),
+                pd = providers[index];
 
-            item.download()
+            $nav.siblings().removeClass('active');
+            $nav.addClass('active');
+            $target.siblings().removeClass('active');
+            $target.addClass('active');
+
+            pd.search(subject)
+            .progress(function (tips) {
+                $target.html(tips);
+            })
+            .done(function (view) {
+                $target.html(view);
+                dialog.update();
+            })
             .fail(function () {
-                $btn.attr('title', '没有找到下载地址。').tipsy({gravity: 'w'}).tipsy('show');
+                $target.html('没有搜到相关的bt种子，切换一下其他搜索试试。');
+                dialog.update();
             });
-
-        });
+        })
+        .find('.movie-improve-nav').first()
+        .click();
 
         return $content;
-    }
-
-    function searchBT () {
-        service.search(serializeSubject())
-        .progress(function (msg) {
-            dialog.setContent(msg);
-        })
-        .done(function (data) {
-            var contents = renderItems(data);
-
-            dialog.setContent(contents);
-        })
-        .fail(function () {
-            dialog.setContent('抱歉，没有找到相关的bt地址。');
-            setTimeout(function () {
-                dialog.close();
-            }, 1000);
-        });
     }
 
     function init () {
@@ -91,10 +100,8 @@ define(function(require, exports, module) {
                 if (!dialog) {
                     dialog = dui.Dialog({width: 600, title: 'BT地址列表'}, true);
                 }
-                dialog.setContent('正在查找中...');
+                dialog.setContent(initDialog());
                 dialog.open();
-
-                searchBT();
             });
         });
     }

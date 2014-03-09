@@ -6,20 +6,19 @@ define(function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
+        m = require('mustache'),
         purl = require('purl'),
         $iframe = null,
-        timeout = 20 * 1000,
+        timeout = 30 * 1000,
         SUBJECT_CACHE = {},
         ITEMS_CACHE = {};
 
-    function _downloadUrl () {
-        /*jshint validthis: true */
-        var url = this.href,
-            $form = null,
+    function download (url) {
+        var $form = null,
             params = purl(url).param(),
             dfd = new $.Deferred();
 
-        if (url) {
+        if (params && params.id && params.uhash) {
             $form = $('<form method="POST" action="http://www.bttiantang.com/download.php">' +
               '<input type="hidden" name="action" value="download"/>' +
               '<input type="hidden" name="id" value="' + params.id + '"/> '+
@@ -54,6 +53,40 @@ define(function(require, exports, module) {
         title = size ? (title + ' ' + size) : title;
 
         return {title: title};
+    }
+
+    var tmpl = '{{#items}}' +
+               '<dl class="movie-improve-bt-dl">' +
+                  '<dt class="movie-improve-bt-title">' +
+                      '<a title="点击下载种子" class="movie-improve-bt-download" href="{{href}}">{{title}}</a>' +
+                  '</dt>' +
+                  '{{#files}}' +
+                  '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
+                  '{{/files}}' +
+               '</dl>' +
+               '{{/items}}';
+
+    function renderItems (items) {
+        var content = m.render(tmpl, {items: items}),
+            $content = $(content);
+
+        $content
+        .on('mouseenter', '.movie-improve-bt-download', function (evt) {
+            $(this).tipsy({gravity: 's', offset: 3}).tipsy('show');
+        })
+        .on('click', '.movie-improve-bt-download', function (evt) {
+            evt.preventDefault();
+
+            var $btn = $(this);
+
+            download($btn.attr('href'))
+            .fail(function () {
+                $btn.attr('title', '没有找到下载地址。');
+            });
+
+        });
+
+        return $content;
     }
 
     function searchSubject (imdb) {
@@ -102,12 +135,12 @@ define(function(require, exports, module) {
 
     function searchItems (subjectUrl) {
         var dfd = new $.Deferred(),
-            data = null;
+            items = null;
 
         if (ITEMS_CACHE.hasOwnProperty(subjectUrl)) {
-            data = ITEMS_CACHE[subjectUrl];
-            if (data) {
-                dfd.resolve(data);
+            items = ITEMS_CACHE[subjectUrl];
+            if (items) {
+                dfd.resolve(items);
             } else {
                 dfd.reject();
             }
@@ -126,25 +159,23 @@ define(function(require, exports, module) {
                     $items = $html.find('.tinfo'),
                     items = [];
 
-                $items.each(function () {
-                    var $item = $(this),
+                items = $.map($items, function (item) {
+                    var $item = $(item),
                         $title = $item.children('a'),
                         $files = $item.find('.video');
 
-                    items.push({
+                    return {
                         href: 'http://www.bttiantang.com' + $title.attr('href'),
-                        download: _downloadUrl,
                         title: $.trim($title.text()),
                         files: $.map($files, _filterFiles)
-                    });
+                    };
                 });
 
                 if (items.length) {
-                    data = {items: items};
-                    ITEMS_CACHE[subjectUrl] = data;
-                    dfd.resolve(data);
+                    ITEMS_CACHE[subjectUrl] = items;
+                    dfd.resolve(items);
                 } else {
-                    ITEMS_CACHE[subjectUrl] = data;
+                    ITEMS_CACHE[subjectUrl] = items;
                     dfd.reject();
                 }
             })
@@ -171,8 +202,8 @@ define(function(require, exports, module) {
                 dfd.notify('马上就好，正在加载BT地址...');
 
                 searchItems(subjectUrl)
-                .done(function (data) {
-                    dfd.resolve(data);
+                .done(function (items) {
+                    dfd.resolve(renderItems(items));
                 })
                 .fail(function () {
                     dfd.reject();
@@ -187,6 +218,7 @@ define(function(require, exports, module) {
     }
 
     module.exports = {
+        name: 'BT天堂',
         search: search
     };
 });
