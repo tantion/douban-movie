@@ -73,11 +73,9 @@ define(function(require, exports, module) {
             })
             .done(function (view) {
                 $target.html(view);
-                dialog.update();
             })
             .fail(function () {
                 $target.html('没有搜到相关的bt种子，切换一下其他搜索试试。');
-                dialog.update();
             });
         })
         .find('.movie-improve-nav').first()
@@ -98,7 +96,7 @@ define(function(require, exports, module) {
             $btn.on('click', function (evt) {
                 evt.preventDefault();
                 if (!dialog) {
-                    dialog = dui.Dialog({width: 600, title: 'BT地址列表'}, true);
+                    dialog = dui.Dialog({width: 700, title: 'BT地址列表'}, true);
                 }
                 dialog.setContent(initDialog());
                 dialog.open();

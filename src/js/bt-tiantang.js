@@ -72,7 +72,7 @@ define(function(require, exports, module) {
 
         $content
         .on('mouseenter', '.movie-improve-bt-download', function (evt) {
-            $(this).tipsy({gravity: 's', offset: 3}).tipsy('show');
+            $(this).tipsy({gravity: 'w', offset: 3}).tipsy('show');
         })
         .on('click', '.movie-improve-bt-download', function (evt) {
             evt.preventDefault();
@@ -171,11 +171,10 @@ define(function(require, exports, module) {
                     };
                 });
 
+                ITEMS_CACHE[subjectUrl] = items;
                 if (items.length) {
-                    ITEMS_CACHE[subjectUrl] = items;
                     dfd.resolve(items);
                 } else {
-                    ITEMS_CACHE[subjectUrl] = items;
                     dfd.reject();
                 }
             })
