@@ -140,7 +140,7 @@ define(function(require, exports, module) {
 
         if (ITEMS_CACHE.hasOwnProperty(subjectUrl)) {
             items = ITEMS_CACHE[subjectUrl];
-            if (items) {
+            if (items && items.length) {
                 dfd.resolve(items);
             } else {
                 dfd.reject();
