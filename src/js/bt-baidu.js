@@ -19,7 +19,7 @@ define(function(require, exports, module) {
 
         if (ITEMS_CACHE.hasOwnProperty(url)) {
             items = ITEMS_CACHE[url];
-            if (items) {
+            if (items && items.length) {
                 dfd.resolve(items);
             } else {
                 dfd.reject();
