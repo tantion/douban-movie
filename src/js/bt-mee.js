@@ -63,7 +63,7 @@ define(function(require, exports, module) {
                         title = '[' + title.join('][') + ']';
                     }
 
-                    href = ed2k ? ed2k : mag;
+                    href = mag ? mag : ed2k;
 
                     return {
                         href: href,
