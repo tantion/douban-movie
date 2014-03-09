@@ -46,7 +46,8 @@
             "http://www.baidu.com/s*",
             "http://imax.im/api/movies/show.json*",
             "http://imax.im/movies/*",
-            "http://btmee.net/search*"
+            "http://btmee.net/search*",
+            "http://www.shooter.cn/search*"
         ]},
         ["blocking", "responseHeaders"]
     );

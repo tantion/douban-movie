@@ -12,7 +12,8 @@ define(function(require, exports, module) {
             require('js/bt-tiantang'),
             require('js/bt-mee'),
             require('js/bt-imax'),
-            require('js/bt-baidu')
+            require('js/bt-baidu'),
+            require('js/bt-shooter')
         ];
 
     function serializeSubject () {
@@ -83,6 +84,8 @@ define(function(require, exports, module) {
         .find('.movie-improve-nav').first()
         .click();
 
+        dialog.setTitle(subject.title2 + ' BT地址列表');
+
         return $content;
     }
 
@@ -98,7 +101,7 @@ define(function(require, exports, module) {
             $btn.on('click', function (evt) {
                 evt.preventDefault();
                 if (!dialog) {
-                    dialog = dui.Dialog({width: 700, title: 'BT地址列表'}, true);
+                    dialog = dui.Dialog({width: 700}, true);
                 }
                 dialog.setContent(initDialog());
                 dialog.open();
