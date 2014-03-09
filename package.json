@@ -1,7 +1,7 @@
 {
   "name": "douban-movie-improve",
   "description": "让豆瓣电影支持下载bt种子。",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "engines": {
     "node": ">= 0.10.0"
   },
