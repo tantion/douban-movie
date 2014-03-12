@@ -189,7 +189,14 @@ define(function(require, exports, module) {
 
     function search (subject) {
         var dfd = new $.Deferred(),
+            imdb = '';
+
+        // 可直接搜关键字
+        if (subject.imdb) {
             imdb = '' + subject.imdb;
+        } else {
+            imdb = encodeURI(subject.title2);
+        }
 
         if (!imdb) {
             dfd.reject();
