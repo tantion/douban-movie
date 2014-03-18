@@ -116,7 +116,7 @@ define(function(require, exports, module) {
 
             searchTitle(title)
             .done(function (items) {
-                dfd.resolve(renderItems(items));
+                dfd.resolve(renderItems(items), items.length);
             })
             .fail(function () {
                 dfd.reject();

@@ -34,17 +34,21 @@ define(function(require, exports, module) {
     function startSearch (subject, $nav, $content) {
         var index = $nav.data('index'),
             $target = $content.find($nav.attr('href')),
+            $count = $nav.find('span'),
             pd = providers[index];
 
         pd.search(subject)
         .progress(function (tips) {
             $target.html(tips);
+            $count.html('..');
         })
-        .done(function (view) {
+        .done(function (view, count) {
             $target.html(view);
+            $count.html(count || 0);
         })
         .fail(function () {
             $target.html('没有搜到相关的bt种子，切换一下其他搜索试试。');
+            $count.html(0);
         });
     }
 
@@ -64,7 +68,7 @@ define(function(require, exports, module) {
                        '<div class="movie-improve-nav-container">' +
                            '{{#tabs}}' +
                            '{{#index}}&nbsp;|&nbsp;{{/index}}' +
-                           '<a class="movie-improve-nav" data-index="{{index}}" href="#movie-improve-tab-{{index}}">{{name}}</a>' +
+                           '<a class="movie-improve-nav" data-index="{{index}}" href="#movie-improve-tab-{{index}}">{{name}} (<span>...</span>)</a>' +
                            '{{/tabs}}' +
                        '</div>' +
                        '<div class="movie-improve-tab-container">' +
