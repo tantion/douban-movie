@@ -11,7 +11,8 @@ define(function(require, exports, module) {
         providers = [
             require('js/bt-tiantang'),
             require('js/bt-imax'),
-            require('js/bt-mee'),
+            require('js/bt-fangying'),
+            //require('js/bt-mee'), // 暂时移走，因为访问不了了
             require('js/bt-baidu'),
             require('js/bt-shooter')
         ];
@@ -25,6 +26,7 @@ define(function(require, exports, module) {
         subject.title2 = title.replace(/^(.+)的剧情简介.*$/, '$1');
         subject.title = $.trim($content.find('[property="v:itemreviewed"]').text());
         subject.stars = parseFloat($content.find('[property="v:average"]').text());
+        subject.actors = $.trim($info.find('[rel="v:starring"]').parent().text());
         subject.year = parseInt($.trim($content.find('.year').text()).replace(/\((\d+)\)/, '$1'), 10);
         subject.imdb = $.trim($info.find('a[href^="http://www.imdb.com/title/tt"]').text());
 

@@ -43,6 +43,8 @@
             "http://www.bttiantang.com/subject/*",
             "http://www.bttiantang.com/download.php*",
             "http://yun.baidu.com/share/link*",
+            "http://www.fangying.tv/category/key_*",
+            "http://www.fangying.tv/f_*",
             "http://www.baidu.com/s*",
             "http://imax.im/api/movies/show.json*",
             "http://imax.im/movies/*",

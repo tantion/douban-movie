@@ -14,7 +14,7 @@ define(function(require, exports, module) {
     var tmpl = '{{#items}}' +
                '<dl class="movie-improve-bt-dl">' +
                   '<dt class="movie-improve-bt-title">' +
-                      '<a title="请右键复制下载地址到下载软件下载。" href="{{href}}">{{&title}}</a>' +
+                      '<a title="请右键复制下载地址或者点击下载。" href="{{href}}">{{&title}}</a>' +
                   '</dt>' +
                   '{{#files}}' +
                   '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
