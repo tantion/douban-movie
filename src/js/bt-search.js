@@ -10,8 +10,8 @@ define(function(require, exports, module) {
         m = require('mustache'),
         providers = [
             require('js/bt-tiantang'),
-            require('js/bt-mee'),
             require('js/bt-imax'),
+            require('js/bt-mee'),
             require('js/bt-baidu'),
             require('js/bt-shooter')
         ];
@@ -24,6 +24,7 @@ define(function(require, exports, module) {
 
         subject.title2 = title.replace(/^(.+)的剧情简介.*$/, '$1');
         subject.title = $.trim($content.find('[property="v:itemreviewed"]').text());
+        subject.stars = parseFloat($content.find('[property="v:average"]').text(), 10);
         subject.imdb = $.trim($info.find('a[href^="http://www.imdb.com/title/tt"]').text());
 
         return subject;
@@ -47,6 +48,7 @@ define(function(require, exports, module) {
             tabs = null,
             $content = null;
 
+            console.log(subject);
         tabs = $.map(providers, function (pd, index) {
             return {
                 name: pd.name || '未名',
