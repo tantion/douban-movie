@@ -31,6 +31,34 @@ define(function(require, exports, module) {
         return subject;
     }
 
+    function startSearch (subject, $nav, $content) {
+        var index = $nav.data('index'),
+            $target = $content.find($nav.attr('href')),
+            pd = providers[index];
+
+        pd.search(subject)
+        .progress(function (tips) {
+            $target.html(tips);
+        })
+        .done(function (view) {
+            $target.html(view);
+        })
+        .fail(function () {
+            $target.html('没有搜到相关的bt种子，切换一下其他搜索试试。');
+        });
+    }
+
+    function activeSearch ($nav, $content) {
+        var index = $nav.data('index'),
+            $target = $content.find($nav.attr('href')),
+            pd = providers[index];
+
+        $nav.siblings().removeClass('active');
+        $nav.addClass('active');
+        $target.siblings().removeClass('active');
+        $target.addClass('active');
+    }
+
     function initDialog () {
         var tmpl = '<div class="movie-improve-bt-container">' +
                        '<div class="movie-improve-nav-container">' +
@@ -62,29 +90,21 @@ define(function(require, exports, module) {
         .on('click', '.movie-improve-nav', function (evt) {
             evt.preventDefault();
 
-            var $nav = $(this),
-                index = $nav.data('index'),
-                $target = $content.find($nav.attr('href')),
-                pd = providers[index];
+            var $nav = $(this);
 
-            $nav.siblings().removeClass('active');
-            $nav.addClass('active');
-            $target.siblings().removeClass('active');
-            $target.addClass('active');
-
-            pd.search(subject)
-            .progress(function (tips) {
-                $target.html(tips);
-            })
-            .done(function (view) {
-                $target.html(view);
-            })
-            .fail(function () {
-                $target.html('没有搜到相关的bt种子，切换一下其他搜索试试。');
-            });
+            activeSearch($nav, $content);
+            startSearch(subject, $nav, $content);
         })
-        .find('.movie-improve-nav').first()
-        .click();
+        .find('.movie-improve-nav')
+        .each(function (index) {
+            var $nav = $(this);
+
+            // 默认选中第一个
+            if (index === 0) {
+                activeSearch($nav, $content);
+            }
+            startSearch(subject, $nav, $content);
+        });
 
         dialog.setTitle(subject.title2 + ' BT地址列表');
 
