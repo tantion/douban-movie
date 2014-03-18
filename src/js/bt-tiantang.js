@@ -89,7 +89,7 @@ define(function(require, exports, module) {
         return $content;
     }
 
-    function searchSubject (imdb) {
+    function searchSubject (imdb, year) {
         var dfd = new $.Deferred(),
             subjectUrl = '';
 
@@ -110,11 +110,37 @@ define(function(require, exports, module) {
                 }
             })
             .done(function (html) {
-                var matches = html.match(/<div class="litpic"><a href="(\/subject\/\d+\.html)"/i),
-                    subjectUrl = '';
+                html = html.replace(/src=/ig, 'data-src=');
 
-                if (matches && matches.length > 1) {
-                    subjectUrl = matches[1];
+                var subjectUrl = '',
+                    $html = $($.parseHTML(html)),
+                    $items = $html.find('.ml .item'),
+                    items = [];
+
+                items = $.map($items, function (item) {
+                    var $item = $(item),
+                        $title = $item.find('.title'),
+                        $link = $title.find('.tt a'),
+                        year = parseInt($.trim($link.text()).replace(/.*\.(\d+)$/, '$1'), 10);
+
+                    return {
+                        href: $link.attr('href'),
+                        year: year
+                    };
+                });
+
+                // 确定最合适的那个链接
+                if (items.length > 0) {
+                    subjectUrl = items[0].href;
+                    // 有两个以上的链接，根据年份来确定，虽然可能并不准确
+                    // 但是对于大部分同名或者包含子名的电影来说还是可以匹配的
+                    if (items.length > 1) {
+                        $.each(items, function (index, item) {
+                            if (item.year === year) {
+                                subjectUrl = item.href;
+                            }
+                        });
+                    }
                 }
 
                 if (subjectUrl) {
@@ -203,7 +229,7 @@ define(function(require, exports, module) {
         } else {
             dfd.notify('正在加载搜索结果，服务器网络慢的话需要等待几秒...');
 
-            searchSubject(imdb)
+            searchSubject(imdb, subject.year)
             .done(function (subjectUrl) {
                 dfd.notify('马上就好，正在加载BT地址...');
 
