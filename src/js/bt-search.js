@@ -12,7 +12,7 @@ define(function(require, exports, module) {
             require('js/bt-tiantang'),
             require('js/bt-imax'),
             require('js/bt-fangying'),
-            //require('js/bt-mee'), // 暂时移走，因为访问不了了
+            require('js/bt-mee'),
             require('js/bt-baidu'),
             require('js/bt-shooter')
         ];

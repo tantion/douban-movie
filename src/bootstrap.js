@@ -25,7 +25,7 @@
 
     // 注入模块管理 seajs
     injectScript('seajs/sea.js', {
-        'data-config': 'config.js?v1.1.0',
+        'data-config': 'config.js?v1.1.1',
         'data-main': 'js/main.js'
     });
 })();
