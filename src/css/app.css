@@ -1,0 +1,45 @@
+.movie-improve-bt-container a {
+    color: #37a;
+}
+.movie-improve-bt-container a:hover {
+    background-color: #37a;
+    color: white;
+}
+
+.movie-improve-bt-desc {
+    font-size: 11px;
+    padding-left: 2em;
+}
+
+.movie-improve-bt-title strong,
+.movie-improve-bt-desc strong {
+    font-weight: bold;
+}
+.movie-improve-bt-dl {
+    margin-bottom: 6px;
+}
+
+.movie-improve-bt-container .movie-improve-nav.active {
+    color: black;
+}
+.movie-improve-bt-container .movie-improve-nav.active:hover {
+    background: transparent;
+}
+
+.movie-improve-tab {
+    display: none;
+}
+.movie-improve-tab.active {
+    display: block;
+}
+
+.movie-improve-nav-container {
+    font-size: 13px;
+    border-bottom: 1px solid silver;
+    padding-bottom: 3px;
+    margin-bottom: 8px;
+}
+.movie-improve-tab-container {
+    height: 400px;
+    overflow: auto;
+}

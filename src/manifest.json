@@ -3,7 +3,7 @@
 
     "name": "豆瓣电影助手",
     "description": "让豆瓣电影支持下载bt种子。",
-    "version": "1.1.1",
+    "version": "1.2.0",
 
     "permissions": [
         "webRequest",
@@ -23,19 +23,16 @@
         "48": "icon.png"
     },
     "web_accessible_resources": [
-        "config.js",
-        "seajs/*.*",
-        "js/*.*",
-        "lib/*.*",
         "images/*.*"
     ],
     "background": {
         "scripts": [
-            "background.js"
         ]
     },
     "content_scripts": [{
-        "matches": ["http://movie.douban.com/*"],
+        "matches": [
+            "http://movie.douban.com/subject/*"
+        ],
         "css":     ["bootstrap.css"],
         "js":      ["bootstrap.js"],
         "run_at":  "document_end"

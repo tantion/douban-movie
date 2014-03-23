@@ -2,7 +2,8 @@
 // movie subject improve
 // http://movie.douban.com/subject/:id
 //
-define(function(require, exports, module) {
+define('js/bt-search', ['jquery', 'mustache', 'js/bt-tiantang', 'js/bt-imax', 'js/bt-fangying', 'js/bt-mee', 'js/bt-baidu', 'js/bt-shooter'],
+    function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
@@ -121,19 +122,16 @@ define(function(require, exports, module) {
         if (!location.href.match(/^http:\/\/movie\.douban\.com\/subject\/\d+/)) {
             return;
         }
+        /* global dui: true */
+        var $btn = $('<div><span class="pl">BT地址:</span> <a href="javascript:">打开列表</a></div>').appendTo('#info').find('a');
 
-        Do.ready('dialog', function () {
-            /* global dui: true */
-            var $btn = $('<div><span class="pl">BT地址:</span> <a href="javascript:">打开列表</a></div>').appendTo('#info').find('a');
-
-            $btn.on('click', function (evt) {
-                evt.preventDefault();
-                if (!dialog) {
-                    dialog = dui.Dialog({width: 700}, true);
-                }
-                dialog.setContent(initDialog());
-                dialog.open();
-            });
+        $btn.on('click', function (evt) {
+            evt.preventDefault();
+            if (!dialog) {
+                dialog = dui.Dialog({nodeId: 'movie-improve-dialog', width: 700}, true);
+            }
+            dialog.setContent(initDialog());
+            dialog.open();
         });
     }
 

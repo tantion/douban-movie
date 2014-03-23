@@ -2,7 +2,7 @@
 // bt 字幕提供者
 // http://www.shooter.cn
 //
-define(function(require, exports, module) {
+define('js/bt-shooter', ['jquery', 'mustache', 'js/util-decodefile'], function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),

@@ -2,7 +2,7 @@
 // bt 搜索提供者
 // http://www.fangying.tv
 //
-define(function(require, exports, module) {
+define('js/bt-fangying', ['jquery', 'mustache'], function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),

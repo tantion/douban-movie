@@ -19,9 +19,24 @@ module.exports = function(grunt) {
         separator: '\n',
         stripBanners: true
       },
-      dist: {
-        //src: [],
-        //dest: ''
+      js: {
+        src: [
+          'src/seajs/sea-debug.js',
+          'src/lib/*.js',
+          'src/lib/douban/dialog.js',
+          'src/lib/tipsy/jquery.tipsy.js',
+          'src/js/*.js',
+          'src/app.js'
+        ],
+        dest: 'src/bootstrap.js'
+      },
+      css: {
+        src: [
+          'src/css/*.css',
+          'src/lib/tipsy/tipsy.css',
+          'src/lib/douban/dialog.css'
+        ],
+        dest: 'src/bootstrap.css'
       }
     },
     replace: {
@@ -44,9 +59,7 @@ module.exports = function(grunt) {
           ]
         },
         files: {
-          'src/manifest.json': 'src/manifest.json',
-          'src/config.js': 'src/config.js',
-          'src/bootstrap.js': 'src/bootstrap.js'
+          'src/manifest.json': 'src/manifest.json'
         }
       }
     },
@@ -64,7 +77,10 @@ module.exports = function(grunt) {
         src: 'Gruntfile.js'
       },
       dev: {
-        src: 'src/js/**/*.js'
+        src: [
+          'src/js/**/*.js',
+          'src/app.js'
+        ]
       },
       dist: {
         src: 'dist/js/**/*.js'
@@ -118,6 +134,14 @@ module.exports = function(grunt) {
       devjs: {
         files: '<%= jshint.dev.src %>',
         tasks: ['jshint:dev']
+      },
+      css: {
+        files: '<%= concat.css.src %>',
+        tasks: ['concat:css']
+      },
+      js: {
+        files: '<%= concat.js.src %>',
+        tasks: ['concat:js']
       }
     }
   });

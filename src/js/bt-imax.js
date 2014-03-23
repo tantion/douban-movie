@@ -2,7 +2,7 @@
 // bt 搜索提供者
 // http://imax.im
 //
-define(function(require, exports, module) {
+define('js/bt-imax', ['jquery', 'mustache'], function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
