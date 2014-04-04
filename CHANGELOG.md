@@ -4,6 +4,9 @@ A chrome extension for Douban Movie
 
 ## Change Log
 
+- v1.3.0 - April 5 2014
+    - Fixed bttiantang donwload. 也许可能以后得需要验证码了
+
 - v1.1.0 - March 19 2014
     - 添加 www.fangying.tv 的种子搜索
     - 优化搜索结果显示，能同时显示结果

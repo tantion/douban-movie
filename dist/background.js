@@ -1,0 +1,1 @@
+chrome.webRequest.onBeforeSendHeaders.addListener(function(a){"use strict";for(var b=0;b<a.requestHeaders.length;b+=1)if("Referer"===a.requestHeaders[b].name){a.requestHeaders[b].value="http://www.bttiantang.com/download.php";break}return{requestHeaders:a.requestHeaders}},{urls:["http://192.184.95.23/?infohash=*"]},["blocking","requestHeaders"]);
