@@ -1,7 +1,7 @@
 //
 // decode file for shooter.cn
 //
-define('js/util-decodefile', [], function(require, exports, module) {
+define('js/util-decodefile', function(require, exports, module) {
     "use strict";
 
     function shtg_calcfilehash(a) {

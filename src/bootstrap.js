@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v1.2.0 - 2014-03-23
+/*! douban-movie-improve - v1.2.0 - 2014-04-05
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -12580,7 +12580,7 @@ if ( typeof define === "function" && define.amd && define.amd.jQuery ) {
 // bt 搜索提供者
 // http://yun.baidu.com
 //
-define('js/bt-baidu', ['jquery', 'mustache'], function(require, exports, module) {
+define('js/bt-baidu', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
@@ -12716,7 +12716,7 @@ define('js/bt-baidu', ['jquery', 'mustache'], function(require, exports, module)
 // bt 搜索提供者
 // http://www.fangying.tv
 //
-define('js/bt-fangying', ['jquery', 'mustache'], function(require, exports, module) {
+define('js/bt-fangying', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
@@ -12937,7 +12937,7 @@ define('js/bt-fangying', ['jquery', 'mustache'], function(require, exports, modu
 // bt 搜索提供者
 // http://imax.im
 //
-define('js/bt-imax', ['jquery', 'mustache'], function(require, exports, module) {
+define('js/bt-imax', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
@@ -13105,7 +13105,7 @@ define('js/bt-imax', ['jquery', 'mustache'], function(require, exports, module) 
 // bt 搜索提供者
 // http://bemee.net
 //
-define('js/bt-mee', ['jquery', 'mustache'], function(require, exports, module) {
+define('js/bt-mee', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
@@ -13244,8 +13244,7 @@ define('js/bt-mee', ['jquery', 'mustache'], function(require, exports, module) {
 // movie subject improve
 // http://movie.douban.com/subject/:id
 //
-define('js/bt-search', ['jquery', 'mustache', 'js/bt-tiantang', 'js/bt-imax', 'js/bt-fangying', 'js/bt-mee', 'js/bt-baidu', 'js/bt-shooter'],
-    function(require, exports, module) {
+define('js/bt-search', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
@@ -13386,7 +13385,7 @@ define('js/bt-search', ['jquery', 'mustache', 'js/bt-tiantang', 'js/bt-imax', 'j
 // bt 字幕提供者
 // http://www.shooter.cn
 //
-define('js/bt-shooter', ['jquery', 'mustache', 'js/util-decodefile'], function(require, exports, module) {
+define('js/bt-shooter', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
@@ -13673,7 +13672,7 @@ define('js/bt-shooter', ['jquery', 'mustache', 'js/util-decodefile'], function(r
 // bt 搜索提供者
 // http://www.bttiantang.com
 //
-define('js/bt-tiantang', ['jquery', 'mustache', 'purl'], function(require, exports, module) {
+define('js/bt-tiantang', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
@@ -13931,7 +13930,7 @@ define('js/bt-tiantang', ['jquery', 'mustache', 'purl'], function(require, expor
 //
 
 // 所有模块都通过 define 来定义
-define('js/main', ['jquery', 'lib/tipsy/jquery.tipsy.js', 'js/bt-search'], function(require, exports, module) {
+define('js/main', function(require, exports, module) {
     "use strict";
 
     // 通过 require 引入依赖
@@ -13942,14 +13941,13 @@ define('js/main', ['jquery', 'lib/tipsy/jquery.tipsy.js', 'js/bt-search'], funct
 
     // 初始化模块
     require('js/bt-search').init();
-
 });
 
 //
 // music musician page improve
 // http://music.douban.com/musician/:id
 //
-define('js/template', ['jquery'], function(require, exports, module) {
+define('js/template', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery');
@@ -13969,7 +13967,7 @@ define('js/template', ['jquery'], function(require, exports, module) {
 //
 // decode file for shooter.cn
 //
-define('js/util-decodefile', [], function(require, exports, module) {
+define('js/util-decodefile', function(require, exports, module) {
     "use strict";
 
     function shtg_calcfilehash(a) {

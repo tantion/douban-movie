@@ -2,8 +2,7 @@
 // movie subject improve
 // http://movie.douban.com/subject/:id
 //
-define('js/bt-search', ['jquery', 'mustache', 'js/bt-tiantang', 'js/bt-imax', 'js/bt-fangying', 'js/bt-mee', 'js/bt-baidu', 'js/bt-shooter'],
-    function(require, exports, module) {
+define('js/bt-search', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),

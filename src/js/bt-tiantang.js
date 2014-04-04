@@ -2,7 +2,7 @@
 // bt 搜索提供者
 // http://www.bttiantang.com
 //
-define('js/bt-tiantang', ['jquery', 'mustache', 'purl'], function(require, exports, module) {
+define('js/bt-tiantang', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),

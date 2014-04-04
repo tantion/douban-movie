@@ -2,7 +2,7 @@
 // music musician page improve
 // http://music.douban.com/musician/:id
 //
-define('js/template', ['jquery'], function(require, exports, module) {
+define('js/template', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery');

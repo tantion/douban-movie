@@ -3,7 +3,7 @@
 //
 
 // 所有模块都通过 define 来定义
-define('js/main', ['jquery', 'lib/tipsy/jquery.tipsy.js', 'js/bt-search'], function(require, exports, module) {
+define('js/main', function(require, exports, module) {
     "use strict";
 
     // 通过 require 引入依赖
@@ -14,5 +14,4 @@ define('js/main', ['jquery', 'lib/tipsy/jquery.tipsy.js', 'js/bt-search'], funct
 
     // 初始化模块
     require('js/bt-search').init();
-
 });
