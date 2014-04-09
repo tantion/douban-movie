@@ -10,6 +10,7 @@ define('jquery', function (require, exports, module) {
 (function () {
     "use strict";
 
+    seajs.use('private/handle-detail');
     seajs.use('private/lazy-load');
 
 })();

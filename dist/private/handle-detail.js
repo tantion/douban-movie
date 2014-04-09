@@ -1,0 +1,1 @@
+define("private/handle-detail",function(require){"use strict";var a=require("jquery");location.href.match(/\/\d+\/\d+\.html/i)&&a(document).on("mousedown",'a[href^="/p2p/"]',function(){var b=a(this),c=b.prop("href");c="/private/detail.html?url="+c,b.attr("href",c)})});

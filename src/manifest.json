@@ -46,9 +46,9 @@
         "run_at":  "document_end"
     }, {
         "matches": [
-            "http://198.2.210.57/*"
+            "http://198.2.210.57/private/detail.html*"
         ],
-        "js":      ["start.js"],
+        "css":     ["private/start.css"],
         "run_at":  "document_start"
     }]
 }

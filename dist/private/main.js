@@ -1,0 +1,1 @@
+define("jquery",function(require,a,b){"use strict";b.exports=window.noConfictJQuery}),function(){"use strict";seajs.use("private/handle-detail"),seajs.use("private/lazy-load")}();
