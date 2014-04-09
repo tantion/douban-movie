@@ -1,5 +1,5 @@
 .lazy-load-img {
-    max-width: 1024px;
+    max-width: 100%;
 }
 .magic-popup-link,
 .magic-popup-link:hover {
@@ -7,4 +7,18 @@
     position: static;
     left: 0;
     top: 0;
+}
+
+.private-sidebar-main {
+    font-size: 12px;
+}
+.private-sidebar-main.affix {
+    padding-right: 15px;
+    top: 20px;
+}
+.private-sidebar-main > ul > li > a {
+    padding: 2px 0;
+}
+.container {
+    width: 100% !important;
 }

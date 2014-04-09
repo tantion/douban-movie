@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v1.3.0 - 2014-04-09
+/*! douban-movie-improve - v1.3.0 - 2014-04-10
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 .mfp-bg {
@@ -370,7 +370,7 @@ img.mfp-img {
   padding-top: 0; }
 
 .lazy-load-img {
-    max-width: 1024px;
+    max-width: 100%;
 }
 .magic-popup-link,
 .magic-popup-link:hover {
@@ -378,4 +378,18 @@ img.mfp-img {
     position: static;
     left: 0;
     top: 0;
+}
+
+.private-sidebar-main {
+    font-size: 12px;
+}
+.private-sidebar-main.affix {
+    padding-right: 15px;
+    top: 20px;
+}
+.private-sidebar-main > ul > li > a {
+    padding: 2px 0;
+}
+.container {
+    width: 100% !important;
 }
