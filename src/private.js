@@ -14848,9 +14848,15 @@ define('private/lazy-load', function (require, exports, module) {
                 enabled: true
             },
             image: {
-                verticalFit: false
+                verticalFit: false,
+                titleSrc: function (mfp) {
+                    return '<a href="#private-img-' + mfp.index + '" class="private-img-go">GO</a>';
+                }
             },
             type: 'image'
+        })
+        .on('click', 'a.private-img-go', function () {
+            $.magnificPopup.close();
         });
     }
 
@@ -14908,13 +14914,14 @@ define('private/lazy-load', function (require, exports, module) {
         body = sections.join('<br>\n');
         $body = $body.html($.parseHTML(body));
 
-        $body.find('img').each(function () {
+        $body.find('img').each(function (i) {
             var $img = $(this),
                 src = $img.data('src'),
                 $link = $('<a/>');
 
             $img.attr('data-original', src);
             $img.addClass('lazy-load-img');
+            $img.attr('id', 'private-img-' + i);
             $link.attr('href', src);
             $link.addClass('magic-popup-link');
             $link.insertBefore($img);

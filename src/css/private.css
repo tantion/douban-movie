@@ -22,3 +22,8 @@
 .container {
     width: 100% !important;
 }
+.private-img-go,
+.private-img-go:hover {
+    color: silver;
+    font-size: 12px;
+}
