@@ -16,3 +16,17 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
 },
 {urls: ["http://192.184.95.23/?infohash=*"]},
 ["blocking", "requestHeaders"]);
+
+chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
+    "use strict";
+
+    for (var i = 0; i < details.requestHeaders.length; i += 1) {
+        if (details.requestHeaders[i].name === 'Referer') {
+            details.requestHeaders[i].value = details.url;
+            break;
+        }
+    }
+    return {requestHeaders: details.requestHeaders};
+},
+{urls: ["http://*.kidown.com/*/down.php"]},
+["blocking", "requestHeaders"]);
