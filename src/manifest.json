@@ -20,7 +20,9 @@
         "48": "icon.png"
     },
     "web_accessible_resources": [
-        "images/*.*"
+        "images/*.*",
+        "inject/*.*",
+        "private/*.*"
     ],
     "background": {
         "persistent": true,
@@ -34,6 +36,13 @@
         ],
         "css":     ["bootstrap.css"],
         "js":      ["bootstrap.js"],
+        "run_at":  "document_end"
+    }, {
+        "matches": [
+            "http://198.2.210.57/*"
+        ],
+        "css":     ["private.css"],
+        "js":      ["private.js"],
         "run_at":  "document_end"
     }]
 }

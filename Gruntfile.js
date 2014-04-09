@@ -30,6 +30,15 @@ module.exports = function(grunt) {
         ],
         dest: 'src/bootstrap.js'
       },
+      privatejs: {
+        src: [
+          'src/seajs/sea-debug.js',
+          'src/lib/jquery.js',
+          'src/private/*.js',
+          'src/private/main.js'
+        ],
+        dest: 'src/private.js'
+      },
       css: {
         src: [
           'src/css/*.css',
@@ -76,14 +85,16 @@ module.exports = function(grunt) {
       gruntfile: {
         src: 'Gruntfile.js'
       },
-      dev: {
+      js: {
         src: [
           'src/js/**/*.js',
           'src/app.js'
         ]
       },
-      dist: {
-        src: 'dist/js/**/*.js'
+      privatejs: {
+        src: [
+          'src/private/**/*.js'
+        ]
       }
     },
     uglify: {
@@ -131,17 +142,25 @@ module.exports = function(grunt) {
         files: 'package.json',
         tasks: ['replace:dist']
       },
-      devjs: {
-        files: '<%= jshint.dev.src %>',
-        tasks: ['jshint:dev']
-      },
       css: {
         files: '<%= concat.css.src %>',
         tasks: ['concat:css']
       },
+      jshint: {
+        files: '<%= jshint.js.src %>',
+        tasks: ['jshint:js']
+      },
       js: {
         files: '<%= concat.js.src %>',
         tasks: ['concat:js']
+      },
+      privatejshint: {
+        files: '<%= jshint.privatejs.src %>',
+        tasks: ['jshint:privatejs']
+      },
+      privatejs: {
+        files: '<%= concat.privatejs.src %>',
+        tasks: ['concat:privatejs']
       }
     }
   });
