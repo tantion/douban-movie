@@ -44,5 +44,11 @@
         "css":     ["private.css"],
         "js":      ["private.js"],
         "run_at":  "document_end"
+    }, {
+        "matches": [
+            "http://198.2.210.57/*"
+        ],
+        "js":      ["start.js"],
+        "run_at":  "document_start"
     }]
 }

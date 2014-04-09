@@ -1,6 +1,4 @@
-/*! douban-movie-improve - v1.3.0 - 2014-04-09
-* https://github.com/tantion/douban-movie
-* Copyright (c) 2014 tantion; Licensed MIT */
+/* Magnific Popup CSS */
 .mfp-bg {
   top: 0;
   left: 0;
@@ -368,14 +366,3 @@ img.mfp-img {
   top: 0;
   right: 0;
   padding-top: 0; }
-
-.lazy-load-img {
-    max-width: 1024px;
-}
-.magic-popup-link,
-.magic-popup-link:hover {
-    display: inline;
-    position: static;
-    left: 0;
-    top: 0;
-}

@@ -34,6 +34,8 @@ module.exports = function(grunt) {
         src: [
           'src/seajs/sea-debug.js',
           'src/lib/jquery.js',
+          'src/lib/jquery.lazyload.js',
+          'src/lib/jquery.magnific-popup.js',
           'src/private/*.js',
           'src/private/main.js'
         ],
@@ -42,10 +44,18 @@ module.exports = function(grunt) {
       css: {
         src: [
           'src/css/*.css',
+          '!src/css/private.css',
           'src/lib/tipsy/tipsy.css',
           'src/lib/douban/dialog.css'
         ],
         dest: 'src/bootstrap.css'
+      },
+      privatecss: {
+        src: [
+          'src/lib/magnific-popup.css',
+          'src/css/private.css'
+        ],
+        dest: 'src/private.css'
       }
     },
     replace: {
@@ -153,6 +163,10 @@ module.exports = function(grunt) {
       js: {
         files: '<%= concat.js.src %>',
         tasks: ['concat:js']
+      },
+      privatecss: {
+        files: '<%= concat.privatecss.src %>',
+        tasks: ['concat:privatecss']
       },
       privatejshint: {
         files: '<%= jshint.privatejs.src %>',
