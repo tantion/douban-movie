@@ -28,10 +28,10 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
     }
     return {requestHeaders: details.requestHeaders};
 },
-{urls: ["http://*.kidown.com/*/down.php"]},
+{urls: ["http://*.kidown.com/*/down.php", "http://i.vod.xunlei.com/*"]},
 ["blocking", "requestHeaders"]);
 
-chrome.runtime.onMessage(function (message, sender, sendRespone) {
+chrome.runtime.onMessage.addListener(function (message, sender, sendRespone) {
     "use strict";
 
     if (message.action === 'cookie') {

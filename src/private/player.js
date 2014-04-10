@@ -4,7 +4,7 @@
 define('private/player', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/private\/detail\.html/i)) {
+    if (!location.href.match(/private\/play\.html/i)) {
         return;
     }
 
@@ -22,11 +22,17 @@ define('private/player', function (require, exports, module) {
         .done(function () {
             yun.requestHash()
             .done(function (infohash) {
-                yun.requestUrl(infohash)
-                .done(function (urls) {
+                yun.requestVod(infohash)
+                .done(function (vodUrl) {
+                    yun.requestUrl(vodUrl)
+                    .done(function (urls) {
+                    })
+                    .fail(function () {
+                        $container.html('加载播放地址失败');
+                    });
                 })
                 .fail(function () {
-                    $container.htlm('加载播放地址失败');
+                    $container.html('加载播放地址失败');
                 });
             })
             .fail(function () {

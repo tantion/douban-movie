@@ -15304,7 +15304,7 @@ define('private/main', function (require, exports, module) {
 define('private/player', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/private\/detail\.html/i)) {
+    if (!location.href.match(/private\/play\.html/i)) {
         return;
     }
 
@@ -15322,11 +15322,17 @@ define('private/player', function (require, exports, module) {
         .done(function () {
             yun.requestHash()
             .done(function (infohash) {
-                yun.requestUrl(infohash)
-                .done(function (urls) {
+                yun.requestVod(infohash)
+                .done(function (vodUrl) {
+                    yun.requestUrl(vodUrl)
+                    .done(function (urls) {
+                    })
+                    .fail(function () {
+                        $container.html('加载播放地址失败');
+                    });
                 })
                 .fail(function () {
-                    $container.htlm('加载播放地址失败');
+                    $container.html('加载播放地址失败');
                 });
             })
             .fail(function () {
@@ -15474,12 +15480,22 @@ define('private/yun', function (require, exports, module) {
             return dfd.promise();
         },
 
-        requestUrl: function (infohash) {
+        requestUrl: function (vodUrl) {
             var dfd = $.Deferred();
 
-            this.requestList(infohash)
-            .done(function (list) {
-                var item = list[0];
+            $.ajax({
+                url: vodUrl,
+                type: 'get',
+                dataType: 'json',
+                timeout: 30 * 1000
+            })
+            .done(function (data) {
+                var urls = data ? data.vodinfo_list : [];
+                if (urls) {
+                    dfd.resolve(urls);
+                } else {
+                    dfd.reject();
+                }
             })
             .fail(function () {
                 dfd.reject();
@@ -15502,6 +15518,25 @@ define('private/yun', function (require, exports, module) {
                     dfd.reject();
                 } else {
                     dfd.resolve();
+                }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+
+            return dfd.promise();
+        },
+
+        requestVod: function (infohash) {
+            var dfd = $.Deferred();
+
+            $.when(this.cookie('sessionid'), this.cookie('userid'))
+            .done(function (sid, uid) {
+                if (sid && uid) {
+                    var url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=0&userid=' + uid + '&vip=1&sessionid=' + sid;
+                    dfd.resolve(url);
+                } else {
+                    dfd.reject();
                 }
             })
             .fail(function () {
