@@ -4,7 +4,7 @@
 define('private/download', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/\/private\/detail\.html/)) {
+    if (!location.href.match(/private\/detail\.html/i)) {
         return;
     }
 
@@ -53,7 +53,7 @@ define('private/download', function (require, exports, module) {
             if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
                 $play = $link.next('.private-play-link');
                 if (!$play.length) {
-                    $play = $('<a class="private-play-link" target="_blank" href="/private/play.html?url=' + href + '">云播</a>').insertAfter($link);
+                    $play = $('<a class="private-play-link" target="_blank" href="http://tantion.com/private/play.html?url=' + href + '">云播</a>').insertAfter($link);
                 }
             }
         })

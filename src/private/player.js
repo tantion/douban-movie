@@ -4,7 +4,7 @@
 define('private/player', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/\/private\/play\.html/)) {
+    if (!location.href.match(/private\/detail\.html/i)) {
         return;
     }
 
@@ -24,7 +24,6 @@ define('private/player', function (require, exports, module) {
             .done(function (infohash) {
                 yun.requestUrl(infohash)
                 .done(function (urls) {
-                    console.log(urls);
                 })
                 .fail(function () {
                     $container.htlm('加载播放地址失败');

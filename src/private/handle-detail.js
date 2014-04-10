@@ -15,7 +15,7 @@ define('private/handle-detail', function (require, exports, module) {
         .on('mousedown', 'a[href^="/p2p/"]', function (evt) {
             var $link = $(this),
                 href = $link.prop('href');
-            href = '/private/detail.html?url=' + href;
+            href = 'http://tantion.com/private/detail.html?url=' + href;
             $link.attr('href', href);
         });
     }

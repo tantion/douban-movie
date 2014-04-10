@@ -1,1 +1,1 @@
-define("jquery",function(require,a,b){"use strict";b.exports=window.noConfictJQuery}),function(){"use strict";seajs.use("private/handle-detail"),seajs.use("private/lazy-load")}();
+define("private/main",function(require){"use strict";var a=[require("private/handle-detail"),require("private/lazy-load"),require("private/download"),require("private/player")],b=require("jquery");a.forEach(function(a){b.isFunction(a.init)&&a.init()})});

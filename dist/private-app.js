@@ -1,0 +1,1 @@
+define("jquery",function(require,a,b){"use strict";b.exports=window.noConfictJQuery}),define("purl",[],function(require,a,b){"use strict";b.exports=window.purl}),seajs.use("private/main");

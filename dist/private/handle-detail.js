@@ -1,1 +1,1 @@
-define("private/handle-detail",function(require){"use strict";var a=require("jquery");location.href.match(/\/\d+\/\d+\.html/i)&&a(document).on("mousedown",'a[href^="/p2p/"]',function(){var b=a(this),c=b.prop("href");c="/private/detail.html?url="+c,b.attr("href",c)})});
+define("private/handle-detail",function(require,a){"use strict";function b(){location.href.match(/\/\d+\/\d+\.html/i)&&c(document).on("mousedown",'a[href^="/p2p/"]',function(){var a=c(this),b=a.prop("href");b="http://tantion.com/private/detail.html?url="+b,a.attr("href",b)})}var c=require("jquery");a.init=b});

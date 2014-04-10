@@ -4,7 +4,7 @@
 define('private/lazy-load', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/\/private\/detail\.html/)) {
+    if (!location.href.match(/private\/detail\.html/i)) {
         return;
     }
 
@@ -121,9 +121,9 @@ define('private/lazy-load', function (require, exports, module) {
             $content.html('error');
         });
 
+        $('html').html('').show();
         document.title = 'loading';
         $('body').html($main);
-        $('html').show();
     }
 
     exports.init = init;

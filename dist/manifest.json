@@ -46,9 +46,9 @@
         "run_at":  "document_end"
     }, {
         "matches": [
-            "http://198.2.210.57/private/detail.html*"
+            "http://tantion.com/private/*"
         ],
-        "css":     ["private/start.css"],
+        "css":     ["bootstrap/css/bootstrap.css", "private/start.css"],
         "run_at":  "document_start"
     }]
 }

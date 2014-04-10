@@ -55,7 +55,6 @@ define('private/yun', function (require, exports, module) {
                 url = params.url || '',
                 infohash = params.infohash || '';
 
-                console.log(infohash);
             if (infohash) {
                 dfd.resolve(infohash);
             } else {
@@ -136,7 +135,6 @@ define('private/yun', function (require, exports, module) {
             this.requestList(infohash)
             .done(function (list) {
                 var item = list[0];
-                console.log(item);
             })
             .fail(function () {
                 dfd.reject();
@@ -175,7 +173,6 @@ define('private/yun', function (require, exports, module) {
                 action: 'cookie',
                 data: {name: name}
             }, function (value) {
-                console.log(value);
                 dfd.resolve(value);
             });
 

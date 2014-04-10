@@ -15013,7 +15013,7 @@ if (typeof jQuery === 'undefined') { throw new Error('Bootstrap\'s JavaScript re
 define('private/download', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/\/private\/detail\.html/)) {
+    if (!location.href.match(/private\/detail\.html/i)) {
         return;
     }
 
@@ -15062,7 +15062,7 @@ define('private/download', function (require, exports, module) {
             if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
                 $play = $link.next('.private-play-link');
                 if (!$play.length) {
-                    $play = $('<a class="private-play-link" target="_blank" href="/private/play.html?url=' + href + '">云播</a>').insertAfter($link);
+                    $play = $('<a class="private-play-link" target="_blank" href="http://tantion.com/private/play.html?url=' + href + '">云播</a>').insertAfter($link);
                 }
             }
         })
@@ -15099,7 +15099,7 @@ define('private/handle-detail', function (require, exports, module) {
         .on('mousedown', 'a[href^="/p2p/"]', function (evt) {
             var $link = $(this),
                 href = $link.prop('href');
-            href = '/private/detail.html?url=' + href;
+            href = 'http://tantion.com/private/detail.html?url=' + href;
             $link.attr('href', href);
         });
     }
@@ -15113,7 +15113,7 @@ define('private/handle-detail', function (require, exports, module) {
 define('private/lazy-load', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/\/private\/detail\.html/)) {
+    if (!location.href.match(/private\/detail\.html/i)) {
         return;
     }
 
@@ -15230,9 +15230,9 @@ define('private/lazy-load', function (require, exports, module) {
             $content.html('error');
         });
 
+        $('html').html('').show();
         document.title = 'loading';
         $('body').html($main);
-        $('html').show();
     }
 
     exports.init = init;
@@ -15267,7 +15267,7 @@ define('private/main', function (require, exports, module) {
 define('private/player', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/\/private\/play\.html/)) {
+    if (!location.href.match(/private\/detail\.html/i)) {
         return;
     }
 
@@ -15287,7 +15287,6 @@ define('private/player', function (require, exports, module) {
             .done(function (infohash) {
                 yun.requestUrl(infohash)
                 .done(function (urls) {
-                    console.log(urls);
                 })
                 .fail(function () {
                     $container.htlm('加载播放地址失败');
@@ -15362,7 +15361,6 @@ define('private/yun', function (require, exports, module) {
                 url = params.url || '',
                 infohash = params.infohash || '';
 
-                console.log(infohash);
             if (infohash) {
                 dfd.resolve(infohash);
             } else {
@@ -15443,7 +15441,6 @@ define('private/yun', function (require, exports, module) {
             this.requestList(infohash)
             .done(function (list) {
                 var item = list[0];
-                console.log(item);
             })
             .fail(function () {
                 dfd.reject();
@@ -15482,7 +15479,6 @@ define('private/yun', function (require, exports, module) {
                 action: 'cookie',
                 data: {name: name}
             }, function (value) {
-                console.log(value);
                 dfd.resolve(value);
             });
 
