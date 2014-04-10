@@ -12794,6 +12794,267 @@ $.magnificPopup.registerModule(RETINA_NS, {
 
 /*>>fastclick*/
  _checkInstance(); })(window.jQuery || window.Zepto);
+;(function(factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(factory);
+    } else {
+        window.purl = factory();
+    }
+})(function() {
+
+    var tag2attr = {
+            a       : 'href',
+            img     : 'src',
+            form    : 'action',
+            base    : 'href',
+            script  : 'src',
+            iframe  : 'src',
+            link    : 'href',
+            embed   : 'src',
+            object  : 'data'
+        },
+
+        key = ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'fragment'], // keys available to query
+
+        aliases = { 'anchor' : 'fragment' }, // aliases for backwards compatability
+
+        parser = {
+            strict : /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,  //less intuitive, more accurate to the specs
+            loose :  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/ // more intuitive, fails on relative paths and deviates from specs
+        },
+
+        isint = /^[0-9]+$/;
+
+    function parseUri( url, strictMode ) {
+        var str = decodeURI( url ),
+        res   = parser[ strictMode || false ? 'strict' : 'loose' ].exec( str ),
+        uri = { attr : {}, param : {}, seg : {} },
+        i   = 14;
+
+        while ( i-- ) {
+            uri.attr[ key[i] ] = res[i] || '';
+        }
+
+        // build query and fragment parameters
+        uri.param['query'] = parseString(uri.attr['query']);
+        uri.param['fragment'] = parseString(uri.attr['fragment']);
+
+        // split path and fragement into segments
+        uri.seg['path'] = uri.attr.path.replace(/^\/+|\/+$/g,'').split('/');
+        uri.seg['fragment'] = uri.attr.fragment.replace(/^\/+|\/+$/g,'').split('/');
+
+        // compile a 'base' domain attribute
+        uri.attr['base'] = uri.attr.host ? (uri.attr.protocol ?  uri.attr.protocol+'://'+uri.attr.host : uri.attr.host) + (uri.attr.port ? ':'+uri.attr.port : '') : '';
+
+        return uri;
+    }
+
+    function getAttrName( elm ) {
+        var tn = elm.tagName;
+        if ( typeof tn !== 'undefined' ) return tag2attr[tn.toLowerCase()];
+        return tn;
+    }
+
+    function promote(parent, key) {
+        if (parent[key].length === 0) return parent[key] = {};
+        var t = {};
+        for (var i in parent[key]) t[i] = parent[key][i];
+        parent[key] = t;
+        return t;
+    }
+
+    function parse(parts, parent, key, val) {
+        var part = parts.shift();
+        if (!part) {
+            if (isArray(parent[key])) {
+                parent[key].push(val);
+            } else if ('object' == typeof parent[key]) {
+                parent[key] = val;
+            } else if ('undefined' == typeof parent[key]) {
+                parent[key] = val;
+            } else {
+                parent[key] = [parent[key], val];
+            }
+        } else {
+            var obj = parent[key] = parent[key] || [];
+            if (']' == part) {
+                if (isArray(obj)) {
+                    if ('' !== val) obj.push(val);
+                } else if ('object' == typeof obj) {
+                    obj[keys(obj).length] = val;
+                } else {
+                    obj = parent[key] = [parent[key], val];
+                }
+            } else if (~part.indexOf(']')) {
+                part = part.substr(0, part.length - 1);
+                if (!isint.test(part) && isArray(obj)) obj = promote(parent, key);
+                parse(parts, obj, part, val);
+                // key
+            } else {
+                if (!isint.test(part) && isArray(obj)) obj = promote(parent, key);
+                parse(parts, obj, part, val);
+            }
+        }
+    }
+
+    function merge(parent, key, val) {
+        if (~key.indexOf(']')) {
+            var parts = key.split('[');
+            parse(parts, parent, 'base', val);
+        } else {
+            if (!isint.test(key) && isArray(parent.base)) {
+                var t = {};
+                for (var k in parent.base) t[k] = parent.base[k];
+                parent.base = t;
+            }
+            if (key !== '') {
+                set(parent.base, key, val);
+            }
+        }
+        return parent;
+    }
+
+    function parseString(str) {
+        return reduce(String(str).split(/&|;/), function(ret, pair) {
+            try {
+                pair = decodeURIComponent(pair.replace(/\+/g, ' '));
+            } catch(e) {
+                // ignore
+            }
+            var eql = pair.indexOf('='),
+                brace = lastBraceInKey(pair),
+                key = pair.substr(0, brace || eql),
+                val = pair.substr(brace || eql, pair.length);
+
+            val = val.substr(val.indexOf('=') + 1, val.length);
+
+            if (key === '') {
+                key = pair;
+                val = '';
+            }
+
+            return merge(ret, key, val);
+        }, { base: {} }).base;
+    }
+
+    function set(obj, key, val) {
+        var v = obj[key];
+        if (typeof v === 'undefined') {
+            obj[key] = val;
+        } else if (isArray(v)) {
+            v.push(val);
+        } else {
+            obj[key] = [v, val];
+        }
+    }
+
+    function lastBraceInKey(str) {
+        var len = str.length,
+            brace,
+            c;
+        for (var i = 0; i < len; ++i) {
+            c = str[i];
+            if (']' == c) brace = false;
+            if ('[' == c) brace = true;
+            if ('=' == c && !brace) return i;
+        }
+    }
+
+    function reduce(obj, accumulator){
+        var i = 0,
+            l = obj.length >> 0,
+            curr = arguments[2];
+        while (i < l) {
+            if (i in obj) curr = accumulator.call(undefined, curr, obj[i], i, obj);
+            ++i;
+        }
+        return curr;
+    }
+
+    function isArray(vArg) {
+        return Object.prototype.toString.call(vArg) === "[object Array]";
+    }
+
+    function keys(obj) {
+        var key_array = [];
+        for ( var prop in obj ) {
+            if ( obj.hasOwnProperty(prop) ) key_array.push(prop);
+        }
+        return key_array;
+    }
+
+    function purl( url, strictMode ) {
+        if ( arguments.length === 1 && url === true ) {
+            strictMode = true;
+            url = undefined;
+        }
+        strictMode = strictMode || false;
+        url = url || window.location.toString();
+
+        return {
+
+            data : parseUri(url, strictMode),
+
+            // get various attributes from the URI
+            attr : function( attr ) {
+                attr = aliases[attr] || attr;
+                return typeof attr !== 'undefined' ? this.data.attr[attr] : this.data.attr;
+            },
+
+            // return query string parameters
+            param : function( param ) {
+                return typeof param !== 'undefined' ? this.data.param.query[param] : this.data.param.query;
+            },
+
+            // return fragment parameters
+            fparam : function( param ) {
+                return typeof param !== 'undefined' ? this.data.param.fragment[param] : this.data.param.fragment;
+            },
+
+            // return path segments
+            segment : function( seg ) {
+                if ( typeof seg === 'undefined' ) {
+                    return this.data.seg.path;
+                } else {
+                    seg = seg < 0 ? this.data.seg.path.length + seg : seg - 1; // negative segments count from the end
+                    return this.data.seg.path[seg];
+                }
+            },
+
+            // return fragment segments
+            fsegment : function( seg ) {
+                if ( typeof seg === 'undefined' ) {
+                    return this.data.seg.fragment;
+                } else {
+                    seg = seg < 0 ? this.data.seg.fragment.length + seg : seg - 1; // negative segments count from the end
+                    return this.data.seg.fragment[seg];
+                }
+            }
+
+        };
+
+    }
+    
+    purl.jQuery = function($){
+        if ($ != null) {
+            $.fn.url = function( strictMode ) {
+                var url = '';
+                if ( this.length ) {
+                    url = $(this).attr( getAttrName(this[0]) ) || '';
+                }
+                return purl( url, strictMode );
+            };
+
+            $.url = purl;
+        }
+    };
+
+    purl.jQuery(window.jQuery);
+
+    return purl;
+
+});
+
 /*!
  * Bootstrap v3.1.1 (http://getbootstrap.com)
  * Copyright 2011-2014 Twitter, Inc.
@@ -14792,29 +15053,33 @@ define('private/download', function (require, exports, module) {
         return dfd.promise();
     }
 
-    $(document)
-    .on('mouseenter', 'a[href]', function () {
-        var $link = $(this),
-            $play = null,
-            href = $link.prop('href');
-        if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
-            $play = $link.next('.private-play-link');
-            if (!$play.length) {
-                $play = $('<a class="private-play-link" target="_blank" href="/private/play.html?url=' + href + '">云播</a>').insertAfter($link);
+    function init () {
+        $(document)
+        .on('mouseenter', 'a[href]', function () {
+            var $link = $(this),
+                $play = null,
+                href = $link.prop('href');
+            if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
+                $play = $link.next('.private-play-link');
+                if (!$play.length) {
+                    $play = $('<a class="private-play-link" target="_blank" href="/private/play.html?url=' + href + '">云播</a>').insertAfter($link);
+                }
             }
-        }
-    })
-    .on('click', 'a[href]', function (evt) {
-        var $link = $(this),
-            href = $link.prop('href');
-        if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
-            evt.preventDefault();
-            download(href)
-            .fail(function () {
-                $link.attr('title', '网络错误，无法下载');
-            });
-        }
-    });
+        })
+        .on('click', 'a[href]', function (evt) {
+            var $link = $(this),
+                href = $link.prop('href');
+            if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
+                evt.preventDefault();
+                download(href)
+                .fail(function () {
+                    $link.attr('title', '网络错误，无法下载');
+                });
+            }
+        });
+    }
+
+    exports.init = init;
 });
 
 //
@@ -14825,18 +15090,21 @@ define('private/handle-detail', function (require, exports, module) {
 
     var $ = require('jquery');
 
-    if (!location.href.match(/\/\d+\/\d+\.html/i)) {
-        return;
+    function init () {
+        if (!location.href.match(/\/\d+\/\d+\.html/i)) {
+            return;
+        }
+
+        $(document)
+        .on('mousedown', 'a[href^="/p2p/"]', function (evt) {
+            var $link = $(this),
+                href = $link.prop('href');
+            href = '/private/detail.html?url=' + href;
+            $link.attr('href', href);
+        });
     }
 
-    $(document)
-    .on('mousedown', 'a[href^="/p2p/"]', function (evt) {
-        var $link = $(this),
-            href = $link.prop('href');
-        href = '/private/detail.html?url=' + href;
-        $link.attr('href', href);
-    });
-
+    exports.init = init;
 });
 
 //
@@ -14875,6 +15143,7 @@ define('private/lazy-load', function (require, exports, module) {
     }
 
     var $ = require('jquery'),
+        purl = require('purl'),
         $main = $('<div id="main" class="container">' +
                   '<div class="row"><h3 id="private-header-top" class="private-header"></h3></div>' +
                   '<div class="row"><div class="col-md-9 private-content"></div><div class="col-md-3 private-sidebar"></div></div>' +
@@ -14887,102 +15156,110 @@ define('private/lazy-load', function (require, exports, module) {
                       '</ul>' +
                       '<a class="back-to-top" href="#private-header-top">返回顶部</a>' +
                   '</div>'),
-        url = location.href.replace(/.*html\?url=(.*)$/, '$1');
+        url = purl(location.href).param('url');
 
-    $.ajax({
-        url: url,
-        type: 'get',
-        timeout: 30 * 1000,
-        dataType: 'text'
-    })
-    .done(function (data) {
-        var html = data.replace(/src=/ig, 'data-src='),
-            $html = $($.parseHTML(html)),
-            $title = $html.filter('title'),
-            title = $.trim($title.text()),
-            $body = $html.filter('#main'),
-            body = $body.find('#content').html(),
-            names = [],
-            index = 0,
-            sections = [];
+    function init () {
+        $.ajax({
+            url: url,
+            type: 'get',
+            timeout: 30 * 1000,
+            dataType: 'text'
+        })
+        .done(function (data) {
+            var html = data.replace(/src=/ig, 'data-src='),
+                $html = $($.parseHTML(html)),
+                $title = $html.filter('title'),
+                title = $.trim($title.text()),
+                $body = $html.filter('#main'),
+                body = $body.find('#content').html(),
+                names = [],
+                index = 0,
+                sections = [];
 
-        sections = body.split(/<br>\n<br>\n/).map(function (section) {
-            var matches = section.match(/^(.*)<br>/i),
-                repl = '',
-                name = '';
-            if (matches && matches.length) {
-                name = matches[1];
-                repl = '<h4 class="private-section-name" id="private-section-name-' + index + '">' + name + '</h4>';
-                section = section.replace(/^.*<br>/i, repl);
-                index += 1;
-                names.push(name);
-            }
-            section = '<div class="private-section">' + section + '</div>';
-            return section;
+            sections = body.split(/<br>\n<br>\n/).map(function (section) {
+                var matches = section.match(/^(.*)<br>/i),
+                    repl = '',
+                    name = '';
+                if (matches && matches.length) {
+                    name = matches[1];
+                    repl = '<h4 class="private-section-name" id="private-section-name-' + index + '">' + name + '</h4>';
+                    section = section.replace(/^.*<br>/i, repl);
+                    index += 1;
+                    names.push(name);
+                }
+                section = '<div class="private-section">' + section + '</div>';
+                return section;
+            });
+
+            body = sections.join('<br>\n');
+            $body = $body.html($.parseHTML(body));
+
+            $body.find('img').each(function (i) {
+                var $img = $(this),
+                    src = $img.data('src'),
+                    $link = $('<a/>');
+
+                $img.attr('data-original', src);
+                $img.addClass('lazy-load-img');
+                $img.attr('id', 'private-img-' + i);
+                $link.attr('href', src);
+                $link.addClass('magic-popup-link');
+                $link.insertBefore($img);
+                $link.append($img);
+            });
+
+            var navs = '';
+            $.each(names, function (i, name) {
+                if (!i) {
+                    navs += '<li class="active"><a href="#private-section-name-' + i +'">' + name + '</a></li>';
+                } else {
+                    navs += '<li class=""><a href="#private-section-name-' + i +'">' + name + '</a></li>';
+                }
+            });
+            $navs.find('.private-sidenav').html(navs);
+            $sidebar.html($navs);
+
+            $header.text(title);
+            document.title = title;
+            $content.html($body.html());
+
+            applyLazyLoad();
+            applyAffix();
+        })
+        .fail(function () {
+            $content.html('error');
         });
 
-        body = sections.join('<br>\n');
-        $body = $body.html($.parseHTML(body));
+        document.title = 'loading';
+        $('body').html($main);
+        $('html').show();
+    }
 
-        $body.find('img').each(function (i) {
-            var $img = $(this),
-                src = $img.data('src'),
-                $link = $('<a/>');
+    exports.init = init;
+});
 
-            $img.attr('data-original', src);
-            $img.addClass('lazy-load-img');
-            $img.attr('id', 'private-img-' + i);
-            $link.attr('href', src);
-            $link.addClass('magic-popup-link');
-            $link.insertBefore($img);
-            $link.append($img);
-        });
+//
+// private main
+//
+define('private/main', function (require, exports, module) {
+    "use strict";
 
-        var navs = '';
-        $.each(names, function (i, name) {
-            if (!i) {
-                navs += '<li class="active"><a href="#private-section-name-' + i +'">' + name + '</a></li>';
-            } else {
-                navs += '<li class=""><a href="#private-section-name-' + i +'">' + name + '</a></li>';
-            }
-        });
-        $navs.find('.private-sidenav').html(navs);
-        $sidebar.html($navs);
+    var modules = [
+        require('private/handle-detail'),
+        require('private/lazy-load'),
+        require('private/download'),
+        require('private/player')
+    ];
 
-        $header.text(title);
-        document.title = title;
-        $content.html($body.html());
+    var $ = require('jquery');
 
-        applyLazyLoad();
-        applyAffix();
-    })
-    .fail(function () {
-        $content.html('error');
+    modules.forEach(function (m) {
+        if ($.isFunction(m.init)) {
+            m.init();
+        }
     });
-
-    document.title = 'loading';
-    $('body').html($main);
-    $('html').show();
 });
 
-//
-// seajs  jquery
-//
-define('jquery', function (require, exports, module) {
-    "use strict";
-
-    module.exports = window.noConfictJQuery;
-});
-
-(function () {
-    "use strict";
-
-    seajs.use('private/handle-detail');
-    seajs.use('private/lazy-load');
-    seajs.use('private/download');
-    seajs.use('private/player');
-
-})();
 
 //
 // player
@@ -14996,27 +15273,36 @@ define('private/player', function (require, exports, module) {
 
     var $ = require('jquery'),
         $container = $('<div class="container"></div>'),
-        url = location.href.replace(/.*url=([^&]+).*/i, '$1'),
         yun = require('private/yun');
 
-    $('html').show();
-    document.title = 'loading';
-    $('body').html($container);
-    $container.html('loading');
+    function init () {
+        $('html').show();
+        document.title = 'loading';
+        $('body').html($container);
+        $container.html('loading');
 
-    yun.hasLogin()
-    .done(function () {
-        yun.upload(url)
-        .done(function (infohash) {
-        
+        yun.hasLogin()
+        .done(function () {
+            yun.requestHash()
+            .done(function (infohash) {
+                yun.requestUrl(infohash)
+                .done(function (urls) {
+                    console.log(urls);
+                })
+                .fail(function () {
+                    $container.htlm('加载播放地址失败');
+                });
+            })
+            .fail(function () {
+                $container.html('创建任务失败');
+            });
         })
         .fail(function () {
-            //console.log('upload error');
+            $container.html('<div class="alert"><a href="http://vod.xunlei.com" target="_blank">你需要先登录迅雷</a></div>');
         });
-    })
-    .fail(function () {
-        $container.html('<div class="alert"><a href="http://vod.xunlei.com" target="_blank">你需要先登录迅雷</a></div>');
-    });
+    }
+
+    exports.init = init;
 });
 
 //
@@ -15025,7 +15311,8 @@ define('private/player', function (require, exports, module) {
 define('private/yun', function (require, exports, module) {
     "use strict";
 
-    var $ = require('jquery');
+    var $ = require('jquery'),
+        purl = require('purl');
 
     function requestTorrent (url) {
         var dfd = $.Deferred(),
@@ -15069,6 +15356,28 @@ define('private/yun', function (require, exports, module) {
     }
 
     module.exports = {
+        requestHash: function () {
+            var dfd = $.Deferred(),
+                params = purl(location.href).param(),
+                url = params.url || '',
+                infohash = params.infohash || '';
+
+                console.log(infohash);
+            if (infohash) {
+                dfd.resolve(infohash);
+            } else {
+                this.upload(url)
+                .done(function (infohash) {
+                    history.replaceState(null, null, location.pathname + '?infohash=' + infohash);
+                    dfd.resolve(infohash);
+                })
+                .fail(function () {
+                    dfd.reject();
+                });
+            }
+
+            return dfd.promise();
+        },
         upload: function (url) {
             var dfd = $.Deferred();
 
@@ -15084,7 +15393,12 @@ define('private/yun', function (require, exports, module) {
                 xhr.open('POST', 'http://i.vod.xunlei.com/submit/post_bt', true);
                 xhr.responseType = 'json';
                 xhr.onload = function () {
-                    dfd.resolve(xhr.response);
+                    var data = xhr.response;
+                    if (data.infohash) {
+                        dfd.resolve(data.infohash);
+                    } else {
+                        dfd.reject();
+                    }
                 };
                 xhr.onerror = function () {
                     dfd.reject();
@@ -15098,6 +15412,46 @@ define('private/yun', function (require, exports, module) {
 
             return dfd.promise();
         },
+
+        requestList: function (infohash) {
+            var dfd = $.Deferred();
+
+            $.ajax({
+                url: 'http://i.vod.xunlei.com/req_subBT/info_hash/' + infohash + '/req_num/10/req_offset/0',
+                type: 'get',
+                timeout: 30 * 1000,
+                dataType: 'json'
+            })
+            .done(function (data) {
+                var list = data.subfile_list;
+                if (list && list.length) {
+                    dfd.resolve(list);
+                } else {
+                    dfd.reject();
+                }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+
+            return dfd.promise();
+        },
+
+        requestUrl: function (infohash) {
+            var dfd = $.Deferred();
+
+            this.requestList(infohash)
+            .done(function (list) {
+                var item = list[0];
+                console.log(item);
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+
+            return dfd.promise();
+        },
+
         hasLogin: function () {
             var dfd = $.Deferred();
 
@@ -15119,6 +15473,40 @@ define('private/yun', function (require, exports, module) {
             });
 
             return dfd.promise();
+        },
+
+        cookie: function (name) {
+            var dfd = $.Deferred();
+
+            chrome.runtime.sendMessage({
+                action: 'cookie',
+                data: {name: name}
+            }, function (value) {
+                console.log(value);
+                dfd.resolve(value);
+            });
+
+            return dfd.promise();
         }
     };
 });
+
+//
+// seajs  jquery
+//
+define('jquery', function (require, exports, module) {
+    "use strict";
+
+    module.exports = window.noConfictJQuery;
+});
+
+//
+// purl
+//
+define('purl', [], function (require, exports, module) {
+    "use strict";
+
+    module.exports = window.purl;
+});
+
+seajs.use('private/main');

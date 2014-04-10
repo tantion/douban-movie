@@ -4,7 +4,8 @@
 define('private/yun', function (require, exports, module) {
     "use strict";
 
-    var $ = require('jquery');
+    var $ = require('jquery'),
+        purl = require('purl');
 
     function requestTorrent (url) {
         var dfd = $.Deferred(),
@@ -48,6 +49,28 @@ define('private/yun', function (require, exports, module) {
     }
 
     module.exports = {
+        requestHash: function () {
+            var dfd = $.Deferred(),
+                params = purl(location.href).param(),
+                url = params.url || '',
+                infohash = params.infohash || '';
+
+                console.log(infohash);
+            if (infohash) {
+                dfd.resolve(infohash);
+            } else {
+                this.upload(url)
+                .done(function (infohash) {
+                    history.replaceState(null, null, location.pathname + '?infohash=' + infohash);
+                    dfd.resolve(infohash);
+                })
+                .fail(function () {
+                    dfd.reject();
+                });
+            }
+
+            return dfd.promise();
+        },
         upload: function (url) {
             var dfd = $.Deferred();
 
@@ -63,7 +86,12 @@ define('private/yun', function (require, exports, module) {
                 xhr.open('POST', 'http://i.vod.xunlei.com/submit/post_bt', true);
                 xhr.responseType = 'json';
                 xhr.onload = function () {
-                    dfd.resolve(xhr.response);
+                    var data = xhr.response;
+                    if (data.infohash) {
+                        dfd.resolve(data.infohash);
+                    } else {
+                        dfd.reject();
+                    }
                 };
                 xhr.onerror = function () {
                     dfd.reject();
@@ -77,6 +105,46 @@ define('private/yun', function (require, exports, module) {
 
             return dfd.promise();
         },
+
+        requestList: function (infohash) {
+            var dfd = $.Deferred();
+
+            $.ajax({
+                url: 'http://i.vod.xunlei.com/req_subBT/info_hash/' + infohash + '/req_num/10/req_offset/0',
+                type: 'get',
+                timeout: 30 * 1000,
+                dataType: 'json'
+            })
+            .done(function (data) {
+                var list = data.subfile_list;
+                if (list && list.length) {
+                    dfd.resolve(list);
+                } else {
+                    dfd.reject();
+                }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+
+            return dfd.promise();
+        },
+
+        requestUrl: function (infohash) {
+            var dfd = $.Deferred();
+
+            this.requestList(infohash)
+            .done(function (list) {
+                var item = list[0];
+                console.log(item);
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+
+            return dfd.promise();
+        },
+
         hasLogin: function () {
             var dfd = $.Deferred();
 
@@ -95,6 +163,20 @@ define('private/yun', function (require, exports, module) {
             })
             .fail(function () {
                 dfd.reject();
+            });
+
+            return dfd.promise();
+        },
+
+        cookie: function (name) {
+            var dfd = $.Deferred();
+
+            chrome.runtime.sendMessage({
+                action: 'cookie',
+                data: {name: name}
+            }, function (value) {
+                console.log(value);
+                dfd.resolve(value);
             });
 
             return dfd.promise();

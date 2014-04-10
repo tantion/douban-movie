@@ -10,25 +10,34 @@ define('private/player', function (require, exports, module) {
 
     var $ = require('jquery'),
         $container = $('<div class="container"></div>'),
-        url = location.href.replace(/.*url=([^&]+).*/i, '$1'),
         yun = require('private/yun');
 
-    $('html').show();
-    document.title = 'loading';
-    $('body').html($container);
-    $container.html('loading');
+    function init () {
+        $('html').show();
+        document.title = 'loading';
+        $('body').html($container);
+        $container.html('loading');
 
-    yun.hasLogin()
-    .done(function () {
-        yun.upload(url)
-        .done(function (infohash) {
-        
+        yun.hasLogin()
+        .done(function () {
+            yun.requestHash()
+            .done(function (infohash) {
+                yun.requestUrl(infohash)
+                .done(function (urls) {
+                    console.log(urls);
+                })
+                .fail(function () {
+                    $container.htlm('加载播放地址失败');
+                });
+            })
+            .fail(function () {
+                $container.html('创建任务失败');
+            });
         })
         .fail(function () {
-            //console.log('upload error');
+            $container.html('<div class="alert"><a href="http://vod.xunlei.com" target="_blank">你需要先登录迅雷</a></div>');
         });
-    })
-    .fail(function () {
-        $container.html('<div class="alert"><a href="http://vod.xunlei.com" target="_blank">你需要先登录迅雷</a></div>');
-    });
+    }
+
+    exports.init = init;
 });

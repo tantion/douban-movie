@@ -1,18 +1,22 @@
 //
-// seajs  jquery
+// private main
 //
-define('jquery', function (require, exports, module) {
+define('private/main', function (require, exports, module) {
     "use strict";
 
-    module.exports = window.noConfictJQuery;
+    var modules = [
+        require('private/handle-detail'),
+        require('private/lazy-load'),
+        require('private/download'),
+        require('private/player')
+    ];
+
+    var $ = require('jquery');
+
+    modules.forEach(function (m) {
+        if ($.isFunction(m.init)) {
+            m.init();
+        }
+    });
 });
 
-(function () {
-    "use strict";
-
-    seajs.use('private/handle-detail');
-    seajs.use('private/lazy-load');
-    seajs.use('private/download');
-    seajs.use('private/player');
-
-})();

@@ -30,3 +30,16 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
 },
 {urls: ["http://*.kidown.com/*/down.php"]},
 ["blocking", "requestHeaders"]);
+
+chrome.runtime.onMessage(function (message, sender, sendRespone) {
+    "use strict";
+
+    if (message.action === 'cookie') {
+        var name = message.data.name;
+        chrome.cookies.get({url: 'http://vod.xunlei.com', name: name}, function (cookie) {
+            var value = cookie ? cookie.value : '';
+            sendRespone(value);
+        });
+        return true;
+    }
+});

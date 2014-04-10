@@ -36,9 +36,10 @@ module.exports = function(grunt) {
           'src/lib/jquery.js',
           'src/lib/jquery.lazyload.js',
           'src/lib/jquery.magnific-popup.js',
+          'src/lib/purl.js',
           'src/bootstrap/js/bootstrap.js',
           'src/private/*.js',
-          'src/private/main.js'
+          'src/private-app.js'
         ],
         dest: 'src/private.js'
       },
@@ -104,7 +105,8 @@ module.exports = function(grunt) {
       },
       privatejs: {
         src: [
-          'src/private/**/*.js'
+          'src/private/**/*.js',
+          'src/private-app.js'
         ]
       }
     },
