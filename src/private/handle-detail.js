@@ -20,5 +20,7 @@ define('private/handle-detail', function (require, exports, module) {
         });
     }
 
-    exports.init = init;
+    module.exports = {
+        init: init
+    };
 });

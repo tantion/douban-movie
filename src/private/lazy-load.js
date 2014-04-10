@@ -62,7 +62,7 @@ define('private/lazy-load', function (require, exports, module) {
                 $title = $html.filter('title'),
                 title = $.trim($title.text()),
                 $body = $html.filter('#main'),
-                body = $body.find('#content').html(),
+                body = $body.find('#content').html() || '',
                 names = [],
                 index = 0,
                 sections = [];
@@ -121,10 +121,12 @@ define('private/lazy-load', function (require, exports, module) {
             $content.html('error');
         });
 
-        $('html').html('').show();
+        $('html').show();
         document.title = 'loading';
         $('body').html($main);
     }
 
-    exports.init = init;
+    module.exports = {
+        init: init
+    };
 });

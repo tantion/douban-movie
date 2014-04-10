@@ -4,7 +4,7 @@
 define('private/main', function (require, exports, module) {
     "use strict";
 
-    var modules = [
+    var ms = [
         require('private/handle-detail'),
         require('private/lazy-load'),
         require('private/download'),
@@ -13,7 +13,7 @@ define('private/main', function (require, exports, module) {
 
     var $ = require('jquery');
 
-    modules.forEach(function (m) {
+    ms.forEach(function (m) {
         if ($.isFunction(m.init)) {
             m.init();
         }

@@ -39,7 +39,8 @@
         "run_at":  "document_end"
     }, {
         "matches": [
-            "http://198.2.210.57/*"
+            "http://198.2.210.57/*",
+            "http://tantion.com/private/*"
         ],
         "css":     ["private.css"],
         "js":      ["private.js"],

@@ -70,5 +70,7 @@ define('private/download', function (require, exports, module) {
         });
     }
 
-    exports.init = init;
+    module.exports = {
+        init: init
+    };
 });

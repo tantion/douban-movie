@@ -38,5 +38,7 @@ define('private/player', function (require, exports, module) {
         });
     }
 
-    exports.init = init;
+    module.exports = {
+        init: init
+    };
 });
