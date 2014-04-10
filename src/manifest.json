@@ -46,6 +46,7 @@
         "run_at":  "document_end"
     }, {
         "matches": [
+            "http://198.2.210.57/private/play.html*",
             "http://198.2.210.57/private/detail.html*"
         ],
         "css":     ["bootstrap/css/bootstrap.css", "private/start.css"],

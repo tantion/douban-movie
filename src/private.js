@@ -14792,10 +14792,22 @@ define('private/download', function (require, exports, module) {
         return dfd.promise();
     }
 
-    $(document).on('click', 'a[href]', function (evt) {
+    $(document)
+    .on('mouseenter', 'a[href]', function () {
+        var $link = $(this),
+            $play = null,
+            href = $link.prop('href');
+        if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
+            $play = $link.next('.private-play-link');
+            if (!$play.length) {
+                $play = $('<a class="private-play-link" target="_blank" href="/private/play.html?url=' + href + '">云播</a>').insertAfter($link);
+            }
+        }
+    })
+    .on('click', 'a[href]', function (evt) {
         var $link = $(this),
             href = $link.prop('href');
-        if (href.match(/file\.php/i)) {
+        if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
             evt.preventDefault();
             download(href)
             .fail(function () {
@@ -14804,8 +14816,6 @@ define('private/download', function (require, exports, module) {
         }
     });
 });
-
-
 
 //
 // use custom detail
@@ -14970,5 +14980,145 @@ define('jquery', function (require, exports, module) {
     seajs.use('private/handle-detail');
     seajs.use('private/lazy-load');
     seajs.use('private/download');
+    seajs.use('private/player');
 
 })();
+
+//
+// player
+//
+define('private/player', function (require, exports, module) {
+    "use strict";
+
+    if (!location.href.match(/\/private\/play\.html/)) {
+        return;
+    }
+
+    var $ = require('jquery'),
+        $container = $('<div class="container"></div>'),
+        url = location.href.replace(/.*url=([^&]+).*/i, '$1'),
+        yun = require('private/yun');
+
+    $('html').show();
+    document.title = 'loading';
+    $('body').html($container);
+    $container.html('loading');
+
+    yun.hasLogin()
+    .done(function () {
+        yun.upload(url)
+        .done(function (infohash) {
+        
+        })
+        .fail(function () {
+            //console.log('upload error');
+        });
+    })
+    .fail(function () {
+        $container.html('<div class="alert"><a href="http://vod.xunlei.com" target="_blank">你需要先登录迅雷</a></div>');
+    });
+});
+
+//
+// yun
+//
+define('private/yun', function (require, exports, module) {
+    "use strict";
+
+    var $ = require('jquery');
+
+    function requestTorrent (url) {
+        var dfd = $.Deferred(),
+            oReq = new XMLHttpRequest(),
+            matches = url.match(/^(http:\/\/\w+\.kidown\.com\/\w+\/)file\.php\/(\w+)\.html/i);
+
+        if (matches && matches.length) {
+            oReq.open('POST', matches[1] + 'down.php', true);
+            oReq.responseType = "arraybuffer";
+
+            oReq.onload = function() {
+                var blob = new Blob([oReq.response], {type: 'application/octet-stream'});
+                dfd.resolve(blob);
+            };
+            oReq.onerror = function () {
+                dfd.reject();
+            };
+
+            var data = new FormData();
+            data.append('type', 'torrent');
+            data.append('name', 'null');
+            data.append('id', matches[2]);
+
+            oReq.send(data);
+        } else {
+            oReq.open('GET', url, true);
+            oReq.responseType = "arraybuffer";
+
+            oReq.onload = function() {
+                var blob = new Blob([oReq.response], {type: 'application/octet-stream'});
+                dfd.resolve(blob);
+            };
+            oReq.onerror = function () {
+                dfd.reject();
+            };
+
+            oReq.send();
+        }
+
+        return dfd.promise();
+    }
+
+    module.exports = {
+        upload: function (url) {
+            var dfd = $.Deferred();
+
+            requestTorrent(url)
+            .done(function (torrent) {
+                var formData = new FormData(),
+                    xhr = new XMLHttpRequest();
+
+                formData.append('Filename', 'null.torrent');
+                formData.append('Filedata', torrent, 'null.torrent');
+                formData.append('Upload', 'Submit Query');
+
+                xhr.open('POST', 'http://i.vod.xunlei.com/submit/post_bt', true);
+                xhr.responseType = 'json';
+                xhr.onload = function () {
+                    dfd.resolve(xhr.response);
+                };
+                xhr.onerror = function () {
+                    dfd.reject();
+                };
+
+                xhr.send(formData);
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+
+            return dfd.promise();
+        },
+        hasLogin: function () {
+            var dfd = $.Deferred();
+
+            $.ajax({
+                url: 'http://i.vod.xunlei.com/req_history_play_list/req_num/30/req_offset/0?type=kongjian&order=create&folder_id=0',
+                type: 'get',
+                dataType: 'json',
+                timeout: 30 * 1000
+            })
+            .done(function (data) {
+                if (data.resp.error_msg) {
+                    dfd.reject();
+                } else {
+                    dfd.resolve();
+                }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+
+            return dfd.promise();
+        }
+    };
+});

@@ -44,10 +44,22 @@ define('private/download', function (require, exports, module) {
         return dfd.promise();
     }
 
-    $(document).on('click', 'a[href]', function (evt) {
+    $(document)
+    .on('mouseenter', 'a[href]', function () {
+        var $link = $(this),
+            $play = null,
+            href = $link.prop('href');
+        if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
+            $play = $link.next('.private-play-link');
+            if (!$play.length) {
+                $play = $('<a class="private-play-link" target="_blank" href="/private/play.html?url=' + href + '">云播</a>').insertAfter($link);
+            }
+        }
+    })
+    .on('click', 'a[href]', function (evt) {
         var $link = $(this),
             href = $link.prop('href');
-        if (href.match(/file\.php/i)) {
+        if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
             evt.preventDefault();
             download(href)
             .fail(function () {
@@ -56,5 +68,3 @@ define('private/download', function (require, exports, module) {
         }
     });
 });
-
-

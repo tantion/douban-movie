@@ -13,5 +13,6 @@ define('jquery', function (require, exports, module) {
     seajs.use('private/handle-detail');
     seajs.use('private/lazy-load');
     seajs.use('private/download');
+    seajs.use('private/player');
 
 })();
