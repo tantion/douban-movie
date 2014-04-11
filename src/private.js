@@ -15338,7 +15338,8 @@ define('private/player', function (require, exports, module) {
                         }
 
                         return '<li><a class="private-play-vod" href="/private/play.html?flv=' + encodeURIComponent(flv) + '&m3u8=' +
-                            encodeURIComponent(m3u8) + '" data-flv="' + flv + '" data-m3u8="' + m3u8 + '">' + title + '</a></li>';
+                            encodeURIComponent(m3u8) + '" data-flv="' + flv + '" data-m3u8="' + m3u8 + '">' + title +
+                            '</a><a href="' + flv + '">flv</a>' + '<a href="' + m3u8 + '">m3u8</a></li>';
                     });
                     navs = navs.join('\n');
                     $nav.html(navs);

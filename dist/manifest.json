@@ -45,11 +45,5 @@
         "css":     ["private.css"],
         "js":      ["private.js"],
         "run_at":  "document_end"
-    }, {
-        "matches": [
-            "http://tantion.com/private/*"
-        ],
-        "css":     ["bootstrap/css/bootstrap.css", "private/start.css"],
-        "run_at":  "document_start"
     }]
 }
