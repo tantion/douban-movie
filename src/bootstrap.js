@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v1.3.0 - 2014-04-11
+/*! douban-movie-improve - v2.0.0 - 2014-04-11
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {

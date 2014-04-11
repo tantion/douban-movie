@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v1.3.0 - 2014-04-11
+/*! douban-movie-improve - v2.0.0 - 2014-04-11
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -15090,10 +15090,13 @@ define('private/download', function (require, exports, module) {
             var $link = $(this),
                 $play = null,
                 href = $link.prop('href');
-            if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
+
+            if (!$link.hasClass('private-play-link') && href.match(/^http:\/\/\w+\.\w+\.com\/\w+\/file\.php/i)) {
+                $link.attr('href', 'http://tantion.com/private/play.html?url=' + href);
                 $play = $link.next('.private-play-link');
+
                 if (!$play.length) {
-                    $play = $('<a class="private-play-link" target="_blank" href="http://tantion.com/private/play.html?url=' + href + '">云播</a>').insertAfter($link);
+                    $play = $('<a class="private-play-link" target="_blank" href="' + href + '">下载</a>').insertAfter($link);
                 }
             }
         })

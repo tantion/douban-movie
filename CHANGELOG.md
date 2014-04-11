@@ -4,6 +4,9 @@ A chrome extension for Douban Movie
 
 ## Change Log
 
+- v2.0.0 - April 11 2014
+    - Added web player
+
 - v1.3.0 - April 5 2014
     - Fixed bttiantang donwload. 也许可能以后得需要验证码了
 
