@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v1.3.0 - 2014-04-10
+/*! douban-movie-improve - v1.3.0 - 2014-04-11
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -15309,38 +15309,40 @@ define('private/player', function (require, exports, module) {
     }
 
     var $ = require('jquery'),
-        $container = $('<div class="container"></div>'),
+        $container = $('.container'),
+        $content = $('.video-container'),
+        $nav = $('.video-nav'),
+        $alert = $('.video-alert'),
         yun = require('private/yun');
 
     function init () {
-        $('html').show();
-        document.title = 'loading';
-        $('body').html($container);
-        $container.html('loading');
-
         yun.hasLogin()
         .done(function () {
-            yun.requestHash()
-            .done(function (infohash) {
-                yun.requestVod(infohash)
-                .done(function (vodUrl) {
-                    yun.requestUrl(vodUrl)
-                    .done(function (urls) {
-                    })
-                    .fail(function () {
-                        $container.html('加载播放地址失败');
+            yun.requestUrl2()
+            .done(function (urls) {
+                if (urls.length) {
+                    var navs = $.map(urls, function (url, i) {
+                        var m3u8 = url.vod_url,
+                            flv = url.vod_url_dt17;
+                        return '<li><a class="private-play-vod" href="/private/play.html?flv=' + encodeURIComponent(flv) + '&m3u8=' +
+                            encodeURIComponent(m3u8) + '" data-flv="' + flv + '" data-m3u8="' + m3u8 + '">播放地址' + i + '</a></li>';
                     });
-                })
-                .fail(function () {
-                    $container.html('加载播放地址失败');
-                });
+                    navs = navs.join('\n');
+                    $nav.html(navs);
+                    window.postMessage({action: 'play', url: {
+                        flv: urls[0].vod_url_dt17,
+                        m3u8: urls[0].vod_url
+                    }}, '*');
+                } else {
+                    $alert.show().html('转码未完成，请稍候再试');
+                }
             })
             .fail(function () {
-                $container.html('创建任务失败');
+                $alert.show().html('加载播放地址失败');
             });
         })
         .fail(function () {
-            $container.html('<div class="alert"><a href="http://vod.xunlei.com" target="_blank">你需要先登录迅雷</a></div>');
+            $alert.show().html('<a href="http://vod.xunlei.com" target="_blank">你需要先登录迅雷</a>');
         });
     }
 
@@ -15356,6 +15358,7 @@ define('private/yun', function (require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
+        aelem = document.createElement('a'),
         purl = require('purl');
 
     function requestTorrent (url) {
@@ -15490,12 +15493,39 @@ define('private/yun', function (require, exports, module) {
                 timeout: 30 * 1000
             })
             .done(function (data) {
-                var urls = data ? data.vodinfo_list : [];
+                var urls = (data && data.resp) ? data.resp.vodinfo_list : [],
+                    url = '';
                 if (urls) {
+                    if (urls.length) {
+                        aelem.setAttribute('href', urls[0].vod_url);
+                        url = 'http://' + aelem.host + '/*';
+                        chrome.runtime.sendMessage({action: 'referer', data: {url: url}});
+                    }
                     dfd.resolve(urls);
                 } else {
                     dfd.reject();
                 }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+
+            return dfd.promise();
+        },
+
+        requestUrl2: function () {
+            var dfd = $.Deferred(),
+                yun = this;
+
+            this.requestHash()
+            .pipe(function (infohash) {
+                return yun.requestVod(infohash);
+            })
+            .pipe(function (vodUrl) {
+                return yun.requestUrl(vodUrl);
+            })
+            .done(function (urls) {
+                dfd.resolve(urls);
             })
             .fail(function () {
                 dfd.reject();

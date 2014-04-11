@@ -5,6 +5,7 @@ define('private/yun', function (require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
+        aelem = document.createElement('a'),
         purl = require('purl');
 
     function requestTorrent (url) {
@@ -139,12 +140,39 @@ define('private/yun', function (require, exports, module) {
                 timeout: 30 * 1000
             })
             .done(function (data) {
-                var urls = data ? data.vodinfo_list : [];
+                var urls = (data && data.resp) ? data.resp.vodinfo_list : [],
+                    url = '';
                 if (urls) {
+                    if (urls.length) {
+                        aelem.setAttribute('href', urls[0].vod_url);
+                        url = 'http://' + aelem.host + '/*';
+                        chrome.runtime.sendMessage({action: 'referer', data: {url: url}});
+                    }
                     dfd.resolve(urls);
                 } else {
                     dfd.reject();
                 }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+
+            return dfd.promise();
+        },
+
+        requestUrl2: function () {
+            var dfd = $.Deferred(),
+                yun = this;
+
+            this.requestHash()
+            .pipe(function (infohash) {
+                return yun.requestVod(infohash);
+            })
+            .pipe(function (vodUrl) {
+                return yun.requestUrl(vodUrl);
+            })
+            .done(function (urls) {
+                dfd.resolve(urls);
             })
             .fail(function () {
                 dfd.reject();
