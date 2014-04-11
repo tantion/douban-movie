@@ -210,7 +210,7 @@ define('private/yun', function (require, exports, module) {
             $.when(this.cookie('sessionid'), this.cookie('userid'))
             .done(function (sid, uid) {
                 if (sid && uid) {
-                    var url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=0&userid=' + uid + '&vip=1&sessionid=' + sid;
+                    var url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
                     dfd.resolve(url);
                 } else {
                     dfd.reject();
