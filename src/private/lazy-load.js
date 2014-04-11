@@ -121,9 +121,8 @@ define('private/lazy-load', function (require, exports, module) {
             $content.html('error');
         });
 
-        $('html').show();
         document.title = 'loading';
-        $('body').html($main);
+        $('body').append($main);
     }
 
     module.exports = {
