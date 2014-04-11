@@ -14,7 +14,6 @@ define('private/player', function (require, exports, module) {
         $container = $('.container'),
         $content = $('.video-container'),
         $nav = $('.video-nav'),
-        $alert = $('.video-alert'),
         yun = require('private/yun'),
         alertify = require('alertify'),
         params = purl(location.href).param(),

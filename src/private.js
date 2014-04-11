@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.0.0 - 2014-04-11
+/*! douban-movie-improve - v2.0.0 - 2014-04-12
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -12825,6 +12825,636 @@ $.magnificPopup.registerModule(RETINA_NS, {
 
 /*>>fastclick*/
  _checkInstance(); })(window.jQuery || window.Zepto);
+(function (global, undefined) {
+	"use strict";
+
+	var document = global.document,
+	    Alertify;
+
+	Alertify = function () {
+
+		var _alertify = {},
+		    dialogs   = {},
+		    isopen    = false,
+		    keys      = { ENTER: 13, ESC: 27, SPACE: 32 },
+		    queue     = [],
+		    $, btnCancel, btnOK, btnReset, btnFocus, elCallee, elCover, elDialog, elLog, form, input, getTransitionEvent;
+
+		/**
+		 * Markup pieces
+		 * @type {Object}
+		 */
+		dialogs = {
+			buttons : {
+				holder : "<nav class=\"alertify-buttons\">{{buttons}}</nav>",
+				submit : "<button type=\"submit\" class=\"alertify-button alertify-button-ok\" id=\"alertify-ok\">{{ok}}</button>",
+				ok     : "<button class=\"alertify-button alertify-button-ok\" id=\"alertify-ok\">{{ok}}</button>",
+				cancel : "<button class=\"alertify-button alertify-button-cancel\" id=\"alertify-cancel\">{{cancel}}</button>"
+			},
+			input   : "<div class=\"alertify-text-wrapper\"><input type=\"text\" class=\"alertify-text\" id=\"alertify-text\"></div>",
+			message : "<p class=\"alertify-message\">{{message}}</p>",
+			log     : "<article class=\"alertify-log{{class}}\">{{message}}</article>"
+		};
+
+		/**
+		 * Return the proper transitionend event
+		 * @return {String}    Transition type string
+		 */
+		getTransitionEvent = function () {
+			var t,
+			    type,
+			    supported   = false,
+			    el          = document.createElement("fakeelement"),
+			    transitions = {
+				    "WebkitTransition" : "webkitTransitionEnd",
+				    "MozTransition"    : "transitionend",
+				    "OTransition"      : "otransitionend",
+				    "transition"       : "transitionend"
+			    };
+
+			for (t in transitions) {
+				if (el.style[t] !== undefined) {
+					type      = transitions[t];
+					supported = true;
+					break;
+				}
+			}
+
+			return {
+				type      : type,
+				supported : supported
+			};
+		};
+
+		/**
+		 * Shorthand for document.getElementById()
+		 *
+		 * @param  {String} id    A specific element ID
+		 * @return {Object}       HTML element
+		 */
+		$ = function (id) {
+			return document.getElementById(id);
+		};
+
+		/**
+		 * Alertify private object
+		 * @type {Object}
+		 */
+		_alertify = {
+
+			/**
+			 * Labels object
+			 * @type {Object}
+			 */
+			labels : {
+				ok     : "OK",
+				cancel : "Cancel"
+			},
+
+			/**
+			 * Delay number
+			 * @type {Number}
+			 */
+			delay : 5000,
+
+			/**
+			 * Whether buttons are reversed (default is secondary/primary)
+			 * @type {Boolean}
+			 */
+			buttonReverse : false,
+
+			/**
+			 * Which button should be focused by default
+			 * @type {String}	"ok" (default), "cancel", or "none"
+			 */
+			buttonFocus : "ok",
+
+			/**
+			 * Set the transition event on load
+			 * @type {[type]}
+			 */
+			transition : undefined,
+
+			/**
+			 * Set the proper button click events
+			 *
+			 * @param {Function} fn    [Optional] Callback function
+			 *
+			 * @return {undefined}
+			 */
+			addListeners : function (fn) {
+				var hasOK     = (typeof btnOK !== "undefined"),
+				    hasCancel = (typeof btnCancel !== "undefined"),
+				    hasInput  = (typeof input !== "undefined"),
+				    val       = "",
+				    self      = this,
+				    ok, cancel, common, key, reset;
+
+				// ok event handler
+				ok = function (event) {
+					if (typeof event.preventDefault !== "undefined") event.preventDefault();
+					common(event);
+					if (typeof input !== "undefined") val = input.value;
+					if (typeof fn === "function") {
+						if (typeof input !== "undefined") {
+							fn(true, val);
+						}
+						else fn(true);
+					}
+					return false;
+				};
+
+				// cancel event handler
+				cancel = function (event) {
+					if (typeof event.preventDefault !== "undefined") event.preventDefault();
+					common(event);
+					if (typeof fn === "function") fn(false);
+					return false;
+				};
+
+				// common event handler (keyup, ok and cancel)
+				common = function (event) {
+					self.hide();
+					self.unbind(document.body, "keyup", key);
+					self.unbind(btnReset, "focus", reset);
+					if (hasInput) self.unbind(form, "submit", ok);
+					if (hasOK) self.unbind(btnOK, "click", ok);
+					if (hasCancel) self.unbind(btnCancel, "click", cancel);
+				};
+
+				// keyup handler
+				key = function (event) {
+					var keyCode = event.keyCode;
+					if (keyCode === keys.SPACE && !hasInput) ok(event);
+					if (keyCode === keys.ESC && hasCancel) cancel(event);
+				};
+
+				// reset focus to first item in the dialog
+				reset = function (event) {
+					if (hasInput) input.focus();
+					else if (!hasCancel || self.buttonReverse) btnOK.focus();
+					else btnCancel.focus();
+				};
+
+				// handle reset focus link
+				// this ensures that the keyboard focus does not
+				// ever leave the dialog box until an action has
+				// been taken
+				this.bind(btnReset, "focus", reset);
+				// handle OK click
+				if (hasOK) this.bind(btnOK, "click", ok);
+				// handle Cancel click
+				if (hasCancel) this.bind(btnCancel, "click", cancel);
+				// listen for keys, Cancel => ESC
+				this.bind(document.body, "keyup", key);
+				// bind form submit
+				if (hasInput) this.bind(form, "submit", ok);
+				if (!this.transition.supported) {
+					this.setFocus();
+				}
+			},
+
+			/**
+			 * Bind events to elements
+			 *
+			 * @param  {Object}   el       HTML Object
+			 * @param  {Event}    event    Event to attach to element
+			 * @param  {Function} fn       Callback function
+			 *
+			 * @return {undefined}
+			 */
+			bind : function (el, event, fn) {
+				if (typeof el.addEventListener === "function") {
+					el.addEventListener(event, fn, false);
+				} else if (el.attachEvent) {
+					el.attachEvent("on" + event, fn);
+				}
+			},
+
+			/**
+			 * Use alertify as the global error handler (using window.onerror)
+			 *
+			 * @return {boolean} success
+			 */
+			handleErrors : function () {
+				if (typeof global.onerror !== "undefined") {
+					var self = this;
+					global.onerror = function (msg, url, line) {
+						self.error("[" + msg + " on line " + line + " of " + url + "]", 0);
+					};
+					return true;
+				} else {
+					return false;
+				}
+			},
+
+			/**
+			 * Append button HTML strings
+			 *
+			 * @param {String} secondary    The secondary button HTML string
+			 * @param {String} primary      The primary button HTML string
+			 *
+			 * @return {String}             The appended button HTML strings
+			 */
+			appendButtons : function (secondary, primary) {
+				return this.buttonReverse ? primary + secondary : secondary + primary;
+			},
+
+			/**
+			 * Build the proper message box
+			 *
+			 * @param  {Object} item    Current object in the queue
+			 *
+			 * @return {String}         An HTML string of the message box
+			 */
+			build : function (item) {
+				var html    = "",
+				    type    = item.type,
+				    message = item.message,
+				    css     = item.cssClass || "";
+
+				html += "<div class=\"alertify-dialog\">";
+
+				if (_alertify.buttonFocus === "none") html += "<a href=\"#\" id=\"alertify-noneFocus\" class=\"alertify-hidden\"></a>";
+
+				if (type === "prompt") html += "<form id=\"alertify-form\">";
+
+				html += "<article class=\"alertify-inner\">";
+				html += dialogs.message.replace("{{message}}", message);
+
+				if (type === "prompt") html += dialogs.input;
+
+				html += dialogs.buttons.holder;
+				html += "</article>";
+
+				if (type === "prompt") html += "</form>";
+
+				html += "<a id=\"alertify-resetFocus\" class=\"alertify-resetFocus\" href=\"#\">Reset Focus</a>";
+				html += "</div>";
+
+				switch (type) {
+				case "confirm":
+					html = html.replace("{{buttons}}", this.appendButtons(dialogs.buttons.cancel, dialogs.buttons.ok));
+					html = html.replace("{{ok}}", this.labels.ok).replace("{{cancel}}", this.labels.cancel);
+					break;
+				case "prompt":
+					html = html.replace("{{buttons}}", this.appendButtons(dialogs.buttons.cancel, dialogs.buttons.submit));
+					html = html.replace("{{ok}}", this.labels.ok).replace("{{cancel}}", this.labels.cancel);
+					break;
+				case "alert":
+					html = html.replace("{{buttons}}", dialogs.buttons.ok);
+					html = html.replace("{{ok}}", this.labels.ok);
+					break;
+				default:
+					break;
+				}
+
+				elDialog.className = "alertify alertify-" + type + " " + css;
+				elCover.className  = "alertify-cover";
+				return html;
+			},
+
+			/**
+			 * Close the log messages
+			 *
+			 * @param  {Object} elem    HTML Element of log message to close
+			 * @param  {Number} wait    [optional] Time (in ms) to wait before automatically hiding the message, if 0 never hide
+			 *
+			 * @return {undefined}
+			 */
+			close : function (elem, wait) {
+				// Unary Plus: +"2" === 2
+				var timer = (wait && !isNaN(wait)) ? +wait : this.delay,
+				    self  = this,
+				    hideElement, transitionDone;
+
+				// set click event on log messages
+				this.bind(elem, "click", function () {
+					hideElement(elem);
+				});
+				// Hide the dialog box after transition
+				// This ensure it doens't block any element from being clicked
+				transitionDone = function (event) {
+					event.stopPropagation();
+					// unbind event so function only gets called once
+					self.unbind(this, self.transition.type, transitionDone);
+					// remove log message
+					elLog.removeChild(this);
+					if (!elLog.hasChildNodes()) elLog.className += " alertify-logs-hidden";
+				};
+				// this sets the hide class to transition out
+				// or removes the child if css transitions aren't supported
+				hideElement = function (el) {
+					// ensure element exists
+					if (typeof el !== "undefined" && el.parentNode === elLog) {
+						// whether CSS transition exists
+						if (self.transition.supported) {
+							self.bind(el, self.transition.type, transitionDone);
+							el.className += " alertify-log-hide";
+						} else {
+							elLog.removeChild(el);
+							if (!elLog.hasChildNodes()) elLog.className += " alertify-logs-hidden";
+						}
+					}
+				};
+				// never close (until click) if wait is set to 0
+				if (wait === 0) return;
+				// set timeout to auto close the log message
+				setTimeout(function () { hideElement(elem); }, timer);
+			},
+
+			/**
+			 * Create a dialog box
+			 *
+			 * @param  {String}   message        The message passed from the callee
+			 * @param  {String}   type           Type of dialog to create
+			 * @param  {Function} fn             [Optional] Callback function
+			 * @param  {String}   placeholder    [Optional] Default value for prompt input field
+			 * @param  {String}   cssClass       [Optional] Class(es) to append to dialog box
+			 *
+			 * @return {Object}
+			 */
+			dialog : function (message, type, fn, placeholder, cssClass) {
+				// set the current active element
+				// this allows the keyboard focus to be resetted
+				// after the dialog box is closed
+				elCallee = document.activeElement;
+				// check to ensure the alertify dialog element
+				// has been successfully created
+				var check = function () {
+					if ((elLog && elLog.scrollTop !== null) && (elCover && elCover.scrollTop !== null)) return;
+					else check();
+				};
+				// error catching
+				if (typeof message !== "string") throw new Error("message must be a string");
+				if (typeof type !== "string") throw new Error("type must be a string");
+				if (typeof fn !== "undefined" && typeof fn !== "function") throw new Error("fn must be a function");
+				// initialize alertify if it hasn't already been done
+				if (typeof this.init === "function") {
+					this.init();
+					check();
+				}
+
+				queue.push({ type: type, message: message, callback: fn, placeholder: placeholder, cssClass: cssClass });
+				if (!isopen) this.setup();
+
+				return this;
+			},
+
+			/**
+			 * Extend the log method to create custom methods
+			 *
+			 * @param  {String} type    Custom method name
+			 *
+			 * @return {Function}
+			 */
+			extend : function (type) {
+				if (typeof type !== "string") throw new Error("extend method must have exactly one paramter");
+				return function (message, wait) {
+					this.log(message, type, wait);
+					return this;
+				};
+			},
+
+			/**
+			 * Hide the dialog and rest to defaults
+			 *
+			 * @return {undefined}
+			 */
+			hide : function () {
+				var transitionDone,
+				    self = this;
+				// remove reference from queue
+				queue.splice(0,1);
+				// if items remaining in the queue
+				if (queue.length > 0) this.setup(true);
+				else {
+					isopen = false;
+					// Hide the dialog box after transition
+					// This ensure it doens't block any element from being clicked
+					transitionDone = function (event) {
+						event.stopPropagation();
+						elDialog.className += " alertify-isHidden";
+						// unbind event so function only gets called once
+						self.unbind(elDialog, self.transition.type, transitionDone);
+					};
+					// whether CSS transition exists
+					if (this.transition.supported) {
+						this.bind(elDialog, this.transition.type, transitionDone);
+						elDialog.className = "alertify alertify-hide alertify-hidden";
+					} else {
+						elDialog.className = "alertify alertify-hide alertify-hidden alertify-isHidden";
+					}
+					elCover.className  = "alertify-cover alertify-cover-hidden";
+					// set focus to the last element or body
+					// after the dialog is closed
+					elCallee.focus();
+				}
+			},
+
+			/**
+			 * Initialize Alertify
+			 * Create the 2 main elements
+			 *
+			 * @return {undefined}
+			 */
+			init : function () {
+				// ensure legacy browsers support html5 tags
+				document.createElement("nav");
+				document.createElement("article");
+				document.createElement("section");
+				// cover
+				elCover = document.createElement("div");
+				elCover.setAttribute("id", "alertify-cover");
+				elCover.className = "alertify-cover alertify-cover-hidden";
+				document.body.appendChild(elCover);
+				// main element
+				elDialog = document.createElement("section");
+				elDialog.setAttribute("id", "alertify");
+				elDialog.className = "alertify alertify-hidden";
+				document.body.appendChild(elDialog);
+				// log element
+				elLog = document.createElement("section");
+				elLog.setAttribute("id", "alertify-logs");
+				elLog.className = "alertify-logs alertify-logs-hidden";
+				document.body.appendChild(elLog);
+				// set tabindex attribute on body element
+				// this allows script to give it focus
+				// after the dialog is closed
+				document.body.setAttribute("tabindex", "0");
+				// set transition type
+				this.transition = getTransitionEvent();
+				// clean up init method
+				delete this.init;
+			},
+
+			/**
+			 * Show a new log message box
+			 *
+			 * @param  {String} message    The message passed from the callee
+			 * @param  {String} type       [Optional] Optional type of log message
+			 * @param  {Number} wait       [Optional] Time (in ms) to wait before auto-hiding the log
+			 *
+			 * @return {Object}
+			 */
+			log : function (message, type, wait) {
+				// check to ensure the alertify dialog element
+				// has been successfully created
+				var check = function () {
+					if (elLog && elLog.scrollTop !== null) return;
+					else check();
+				};
+				// initialize alertify if it hasn't already been done
+				if (typeof this.init === "function") {
+					this.init();
+					check();
+				}
+				elLog.className = "alertify-logs";
+				this.notify(message, type, wait);
+				return this;
+			},
+
+			/**
+			 * Add new log message
+			 * If a type is passed, a class name "alertify-log-{type}" will get added.
+			 * This allows for custom look and feel for various types of notifications.
+			 *
+			 * @param  {String} message    The message passed from the callee
+			 * @param  {String} type       [Optional] Type of log message
+			 * @param  {Number} wait       [Optional] Time (in ms) to wait before auto-hiding
+			 *
+			 * @return {undefined}
+			 */
+			notify : function (message, type, wait) {
+				var log = document.createElement("article");
+				log.className = "alertify-log" + ((typeof type === "string" && type !== "") ? " alertify-log-" + type : "");
+				log.innerHTML = message;
+				// append child
+				elLog.appendChild(log);
+				// triggers the CSS animation
+				setTimeout(function() { log.className = log.className + " alertify-log-show"; }, 50);
+				this.close(log, wait);
+			},
+
+			/**
+			 * Set properties
+			 *
+			 * @param {Object} args     Passing parameters
+			 *
+			 * @return {undefined}
+			 */
+			set : function (args) {
+				var k;
+				// error catching
+				if (typeof args !== "object" && args instanceof Array) throw new Error("args must be an object");
+				// set parameters
+				for (k in args) {
+					if (args.hasOwnProperty(k)) {
+						this[k] = args[k];
+					}
+				}
+			},
+
+			/**
+			 * Common place to set focus to proper element
+			 *
+			 * @return {undefined}
+			 */
+			setFocus : function () {
+				if (input) {
+					input.focus();
+					input.select();
+				}
+				else btnFocus.focus();
+			},
+
+			/**
+			 * Initiate all the required pieces for the dialog box
+			 *
+			 * @return {undefined}
+			 */
+			setup : function (fromQueue) {
+				var item = queue[0],
+				    self = this,
+				    transitionDone;
+
+				// dialog is open
+				isopen = true;
+				// Set button focus after transition
+				transitionDone = function (event) {
+					event.stopPropagation();
+					self.setFocus();
+					// unbind event so function only gets called once
+					self.unbind(elDialog, self.transition.type, transitionDone);
+				};
+				// whether CSS transition exists
+				if (this.transition.supported && !fromQueue) {
+					this.bind(elDialog, this.transition.type, transitionDone);
+				}
+				// build the proper dialog HTML
+				elDialog.innerHTML = this.build(item);
+				// assign all the common elements
+				btnReset  = $("alertify-resetFocus");
+				btnOK     = $("alertify-ok")     || undefined;
+				btnCancel = $("alertify-cancel") || undefined;
+				btnFocus  = (_alertify.buttonFocus === "cancel") ? btnCancel : ((_alertify.buttonFocus === "none") ? $("alertify-noneFocus") : btnOK),
+				input     = $("alertify-text")   || undefined;
+				form      = $("alertify-form")   || undefined;
+				// add placeholder value to the input field
+				if (typeof item.placeholder === "string" && item.placeholder !== "") input.value = item.placeholder;
+				if (fromQueue) this.setFocus();
+				this.addListeners(item.callback);
+			},
+
+			/**
+			 * Unbind events to elements
+			 *
+			 * @param  {Object}   el       HTML Object
+			 * @param  {Event}    event    Event to detach to element
+			 * @param  {Function} fn       Callback function
+			 *
+			 * @return {undefined}
+			 */
+			unbind : function (el, event, fn) {
+				if (typeof el.removeEventListener === "function") {
+					el.removeEventListener(event, fn, false);
+				} else if (el.detachEvent) {
+					el.detachEvent("on" + event, fn);
+				}
+			}
+		};
+
+		return {
+			alert   : function (message, fn, cssClass) { _alertify.dialog(message, "alert", fn, "", cssClass); return this; },
+			confirm : function (message, fn, cssClass) { _alertify.dialog(message, "confirm", fn, "", cssClass); return this; },
+			extend  : _alertify.extend,
+			init    : _alertify.init,
+			log     : function (message, type, wait) { _alertify.log(message, type, wait); return this; },
+			prompt  : function (message, fn, placeholder, cssClass) { _alertify.dialog(message, "prompt", fn, placeholder, cssClass); return this; },
+			success : function (message, wait) { _alertify.log(message, "success", wait); return this; },
+			error   : function (message, wait) { _alertify.log(message, "error", wait); return this; },
+			set     : function (args) { _alertify.set(args); },
+            hide    : _alertify.hide,
+			labels  : _alertify.labels,
+			debug   : _alertify.handleErrors
+		};
+	};
+
+	// AMD and window support
+	if (typeof define === "function") {
+        if (define.cmd) {
+            define('alertify', function (require, exports, module) {
+                module.exports = new Alertify();
+            });
+        } else {
+            define([], function () { return new Alertify(); });
+        }
+	} else if (typeof global.alertify === "undefined") {
+		global.alertify = new Alertify();
+	}
+
+}(this));
+
 ;(function(factory) {
     if (typeof define === 'function' && define.amd) {
         define(factory);
@@ -15039,47 +15669,167 @@ if (typeof jQuery === 'undefined') { throw new Error('Bootstrap\'s JavaScript re
 }(jQuery);
 
 //
-// quick download
+// detect download or play
 //
-define('private/download', function (require, exports, module) {
+define('private/adapter', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/private\/detail\.html/i)) {
+    var $ = require('jquery'),
+        yun = require('private/yun'),
+        alertify = require('alertify');
+
+    function openYunbo (href, usePrivate) {
+        alertify.log('正在加载云播地址...');
+        yun.requestHash(href)
+        .done(function (hash) {
+            var url = '';
+            if (usePrivate) {
+                url = 'http://tantion.com/private/play.html?infohash=' + hash;
+            } else {
+                url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=bt%3A%2F%2F' + hash + '&playwindow=player';
+            }
+            chrome.runtime.sendMessage({action: 'openUrl', data: {url: url}});
+            alertify.success('准备云播');
+        })
+        .fail(function (msg) {
+            alertify.log(msg || '云播失败，未知错误');
+        });
+    }
+
+    var adapter = {
+        init: function () {
+            $(document)
+            .on('click', 'a.private-play-download-link', function (evt) {
+                var href = $(this).prop('href');
+
+                if (adapter.isYunAction(evt)) {
+                    evt.preventDefault();
+                    openYunbo(href);
+                }
+                else if (adapter.isPrivateAction(evt)) {
+                    evt.preventDefault();
+                    openYunbo(href, true);
+                }
+            });
+        },
+        isYunAction: function (evt) {
+            if (evt && evt.shiftKey && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
+                return true;
+            }
+            return false;
+        },
+        isPrivateAction: function (evt) {
+            if (evt && !evt.shiftKey && evt.altKey && !evt.ctrlKey && !evt.metaKey) {
+                return true;
+            }
+            return false;
+        },
+        isDefaultPrevented: function (evt) {
+            if (adapter.isYunAction(evt) || adapter.isPrivateAction(evt)) {
+                return true;
+            }
+            return false;
+        }
+    };
+
+    module.exports = adapter;
+});
+
+
+//
+// quick download
+//
+define('private/bt', function (require, exports, module) {
+    "use strict";
+
+    if (!location.href.match(/\/p2p\/\w+\/[\w\-]+\.html/i)) {
         return;
     }
 
     var $ = require('jquery'),
+        adapter = require('private/adapter'),
+        alertify = require('alertify'),
         $iframe = null;
+
 
     function download (url) {
         var dfd = new $.Deferred();
 
-        $.ajax({
-            url: url,
-            type: 'get',
-            dataType: 'text',
-            timeout: 30 * 1000
-        })
-        .done(function (data) {
-            var html = data.replace(/src=/ig, 'data-src='),
-                $html = $($.parseHTML(html)),
-                action = url.replace(/file\.php.*/i, 'down.php'),
-                $form = $html.find('form');
+        if (isPrivateBtUrl(url)) {
+            $.ajax({
+                url: url,
+                type: 'get',
+                dataType: 'text',
+                timeout: 30 * 1000
+            })
+            .done(function (data) {
+                var html = data.replace(/src=/ig, 'data-src='),
+                    $html = $($.parseHTML(html)),
+                    action = url.replace(/file\.php.*/i, 'down.php'),
+                    $form = $html.find('form');
 
-            $form.attr('action', action);
+                $form.attr('action', action);
 
-            if (!$iframe) {
-                $iframe = $('<iframe/>').hide().appendTo('body');
-            }
-            $iframe.html($form);
+                if (!$iframe) {
+                    $iframe = $('<iframe/>').hide().appendTo('body');
+                }
+                $iframe.html($form);
 
-            $form[0].submit();
+                $form[0].submit();
 
-            dfd.resolve();
-        })
-        .fail(function () {
+                dfd.resolve();
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+        } else {
+            dfd.reject('url error');
+        }
+
+        return dfd.promise();
+    }
+
+    function isPrivateBtUrl (url) {
+        url = '' + url;
+        if (url.match(/^http:\/\/\w+\.\w+\.com\/\w+\/file\.php\/\w+\.html/i)) {
+            return true;
+        }
+    }
+
+    function load (url) {
+        var dfd = $.Deferred(),
+            matches = [],
+            data = null,
+            xhr = null,
+            base = '',
+            id = '';
+
+        if (isPrivateBtUrl(url)) {
+            matches = url.match(/^(http:\/\/\w+\.\w+\.com\/\w+\/)file\.php\/(\w+)\.html/i);
+            base = matches[1];
+            id = matches[2];
+            xhr = new XMLHttpRequest();
+
+            xhr.open('POST', base + 'down.php', true);
+            xhr.responseType = "arraybuffer";
+
+            xhr.onload = function() {
+                var blob = new Blob([xhr.response], {type: 'application/octet-stream'});
+                dfd.resolve(blob);
+            };
+            xhr.onerror = function () {
+                dfd.reject();
+            };
+
+            data = new FormData();
+            data.append('type', 'torrent');
+            data.append('name', 'null');
+            data.append('id', id);
+
+            xhr.send(data);
+        } else {
             dfd.reject();
-        });
+        }
 
         return dfd.promise();
     }
@@ -15088,33 +15838,32 @@ define('private/download', function (require, exports, module) {
         $(document)
         .on('mouseenter', 'a[href]', function () {
             var $link = $(this),
-                $play = null,
                 href = $link.prop('href');
 
-            if (!$link.hasClass('private-play-link') && href.match(/^http:\/\/\w+\.\w+\.com\/\w+\/file\.php/i)) {
-                $link.attr('href', 'http://tantion.com/private/play.html?url=' + href);
-                $play = $link.next('.private-play-link');
-
-                if (!$play.length) {
-                    $play = $('<a class="private-play-link" target="_blank" href="' + href + '">下载</a>').insertAfter($link);
-                }
+            if (!$link.hasClass('private-play-download-link') && isPrivateBtUrl(href)) {
+                $link.addClass('private-play-download-link');
             }
         })
-        .on('click', 'a[href]', function (evt) {
-            var $link = $(this),
-                href = $link.prop('href');
-            if (href.match(/^http:\/\/\w+\.kidown\.com\/\w+\/file\.php/i)) {
-                evt.preventDefault();
-                download(href)
-                .fail(function () {
-                    $link.attr('title', '网络错误，无法下载');
-                });
+        .on('click', 'a.private-play-download-link', function (evt) {
+            // 拦截
+            if (adapter.isDefaultPrevented(evt)) {
+                return;
             }
+
+            evt.preventDefault();
+            alertify.log('正在下载中... 同时 `Shift+单击` 可云播');
+            download($(this).prop('href'))
+            .fail(function () {
+                alertify.error('网络错误，下载失败');
+            });
         });
     }
 
     module.exports = {
-        init: init
+        init: init,
+        isPrivateBtUrl: isPrivateBtUrl,
+        download: download,
+        load: load
     };
 });
 
@@ -15268,9 +16017,8 @@ define('private/lazy-load', function (require, exports, module) {
             $content.html('error');
         });
 
-        $('html').show();
         document.title = 'loading';
-        $('body').html($main);
+        $('body').append($main);
     }
 
     module.exports = {
@@ -15287,7 +16035,8 @@ define('private/main', function (require, exports, module) {
     var ms = [
         require('private/handle-detail'),
         require('private/lazy-load'),
-        require('private/download'),
+        require('private/bt'),
+        require('private/adapter'),
         require('private/player')
     ];
 
@@ -15312,52 +16061,81 @@ define('private/player', function (require, exports, module) {
     }
 
     var $ = require('jquery'),
+        purl = require('purl'),
+        aelem = document.createElement('a'),
         $container = $('.container'),
         $content = $('.video-container'),
         $nav = $('.video-nav'),
-        $alert = $('.video-alert'),
-        yun = require('private/yun');
+        yun = require('private/yun'),
+        alertify = require('alertify'),
+        params = purl(location.href).param(),
+        infohash = params.infohash || '',
+        url = params.url || '';
 
     function postMessageToPlay (url) {
         window.postMessage({action: 'play', url: url}, '*');
     }
 
+    function requestHash () {
+        var dfd = $.Deferred();
+
+        if (infohash) {
+            dfd.resovle(infohash);
+        } else {
+            if (url) {
+                yun.requestHash(url)
+                .done(function (hash) {
+                    infohash = hash;
+                    history.replaceState(null, null, location.pathname + '?infohash=' + hash);
+                })
+                .fail(function (msg) {
+                    dfd.reject(msg);
+                });
+            }
+        }
+
+        return dfd.promise();
+    }
+
     function init () {
-        yun.hasLogin()
-        .done(function () {
-            yun.requestUrl2()
+        requestHash()
+        .done(function (hash) {
+            yun.requestUrlByHash(hash)
             .done(function (urls) {
-                if (urls.length) {
-                    var navs = $.map(urls, function (url, i) {
-                        var m3u8 = url.vod_url,
-                            flv = url.vod_url_dt17,
-                            title = '流畅版';
-
-                        if (i === 1) {
-                            title = '高清版';
-                        }
-                        else if (i > 1) {
-                            title = '超清版';
-                        }
-
-                        return '<li><a class="private-play-vod" href="/private/play.html?flv=' + encodeURIComponent(flv) + '&m3u8=' +
-                            encodeURIComponent(m3u8) + '" data-flv="' + flv + '" data-m3u8="' + m3u8 + '">' + title +
-                            '</a><a href="' + flv + '">flv</a>' + '<a href="' + m3u8 + '">m3u8</a></li>';
-                    });
-                    navs = navs.join('\n');
-                    $nav.html(navs);
-
-                    postMessageToPlay({flv: urls[0].vod_url_dt17, m3u8: urls[0].vod_url});
-                } else {
-                    $alert.show().html('转码未完成，请稍候再试');
-                }
+                aelem.setAttribute('href', urls[0].vod_url);
+                url = 'http://' + aelem.host + '/*';
+                chrome.runtime.sendMessage({action: 'referer', data: {url: url}});
             })
-            .fail(function () {
-                $alert.show().html('加载播放地址失败');
+            .done(function (urls) {
+                var navs = $.map(urls, function (url, i) {
+                    var m3u8 = url.vod_url,
+                    flv = url.vod_url_dt17,
+                    title = '流畅版';
+
+                    if (i === 1) {
+                        title = '高清版';
+                    }
+                    else if (i > 1) {
+                        title = '超清版';
+                    }
+
+                    return '<li><a class="private-play-vod" href="/private/play.html?flv=' + encodeURIComponent(flv) + '&m3u8=' +
+                        encodeURIComponent(m3u8) + '" data-flv="' + flv + '" data-m3u8="' + m3u8 + '">' + title +
+                        '</a><a href="' + flv + '">flv</a>' + '<a href="' + m3u8 + '">m3u8</a></li>';
+                });
+                navs = navs.join('\n');
+                $nav.html(navs);
+
+                postMessageToPlay({flv: urls[0].vod_url_dt17, m3u8: urls[0].vod_url});
+            })
+            .fail(function (msg) {
+                alertify.error(msg || '未知错误');
             });
         })
-        .fail(function () {
-            $alert.show().html('<a href="http://vod.xunlei.com" target="_blank">你需要先登录迅雷</a>');
+        .fail(function (msg) {
+            if (msg) {
+                alertify.error(msg);
+            }
         });
 
         $(document)
@@ -15384,236 +16162,222 @@ define('private/yun', function (require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
-        aelem = document.createElement('a'),
-        purl = require('purl');
+        hashCache = {},
+        tt = require('js/bt-tiantang'),
+        bt = require('private/bt');
 
-    function requestTorrent (url) {
+    function hasLogin () {
+        var dfd = $.Deferred();
+
+        $.ajax({
+            url: 'http://i.vod.xunlei.com/req_history_play_list/req_num/30/req_offset/0?type=kongjian&order=create&folder_id=0',
+            type: 'get',
+            dataType: 'json',
+            timeout: 30 * 1000
+        })
+        .done(function (data) {
+            if (data.resp.error_msg) {
+                dfd.reject();
+            } else {
+                dfd.resolve();
+            }
+        })
+        .fail(function () {
+            dfd.reject();
+        });
+
+        return dfd.promise();
+    }
+
+    function uploadBt (blob) {
+        var formData = new FormData(),
+            dfd = $.Deferred(),
+            xhr = new XMLHttpRequest();
+
+        formData.append('Filename', 'null.torrent');
+        formData.append('Filedata', blob, 'null.torrent');
+        formData.append('Upload', 'Submit Query');
+
+        xhr.open('POST', 'http://i.vod.xunlei.com/submit/post_bt', true);
+        xhr.responseType = 'json';
+        xhr.onload = function () {
+            var data = xhr.response;
+            if (data.infohash) {
+                dfd.resolve(data.infohash);
+            } else {
+                dfd.reject();
+            }
+        };
+        xhr.onerror = function () {
+            dfd.reject();
+        };
+
+        xhr.send(formData);
+
+        return dfd.promise();
+    }
+
+    function checkUrl (url) {
+        var dfd = $.Defer();
+
+        return dfd.promise();
+    }
+
+    function requestHash (url) {
         var dfd = $.Deferred(),
-            oReq = new XMLHttpRequest(),
-            matches = url.match(/^(http:\/\/\w+\.kidown\.com\/\w+\/)file\.php\/(\w+)\.html/i);
+            loader = null;
 
-        if (matches && matches.length) {
-            oReq.open('POST', matches[1] + 'down.php', true);
-            oReq.responseType = "arraybuffer";
-
-            oReq.onload = function() {
-                var blob = new Blob([oReq.response], {type: 'application/octet-stream'});
-                dfd.resolve(blob);
-            };
-            oReq.onerror = function () {
-                dfd.reject();
-            };
-
-            var data = new FormData();
-            data.append('type', 'torrent');
-            data.append('name', 'null');
-            data.append('id', matches[2]);
-
-            oReq.send(data);
+        if (hashCache.hasOwnProperty(url)) {
+            dfd.resovle(hashCache[url]);
         } else {
-            oReq.open('GET', url, true);
-            oReq.responseType = "arraybuffer";
+            hasLogin()
+            .done(function () {
+                if (bt.isPrivateBtUrl(url) || tt.isTiangtangUrl(url)) {
+                    if (bt.isPrivateBtUrl(url)) {
+                        loader = bt.load(url);
+                    } else {
+                        loader = tt.load(url);
+                    }
 
-            oReq.onload = function() {
-                var blob = new Blob([oReq.response], {type: 'application/octet-stream'});
-                dfd.resolve(blob);
-            };
-            oReq.onerror = function () {
-                dfd.reject();
-            };
-
-            oReq.send();
+                    loader
+                    .done(function (blob) {
+                        uploadBt(blob)
+                        .done(function (hash) {
+                            hashCache[url] = hash;
+                            dfd.resolve(hash);
+                        })
+                        .fail(function (msg) {
+                            dfd.reject(msg);
+                        });
+                    })
+                    .fail(function () {
+                        dfd.reject('下载bt失败');
+                    });
+                } else {
+                    checkUrl(url)
+                    .done(function (hash) {
+                        hashCache[url] = hash;
+                        dfd.resolve(hash);
+                    })
+                    .fail(function (msg) {
+                        dfd.reject(msg);
+                    });
+                }
+            })
+            .fail(function (msg) {
+                dfd.reject(msg);
+            });
         }
 
         return dfd.promise();
     }
 
-    module.exports = {
-        requestHash: function () {
-            var dfd = $.Deferred(),
-                params = purl(location.href).param(),
-                url = params.url || '',
-                infohash = params.infohash || '';
+    function requestList (infohash) {
+        var dfd = $.Deferred();
 
-            if (infohash) {
-                dfd.resolve(infohash);
+        $.ajax({
+            url: 'http://i.vod.xunlei.com/req_subBT/info_hash/' + infohash + '/req_num/10/req_offset/0',
+            type: 'get',
+            timeout: 30 * 1000,
+            dataType: 'json'
+        })
+        .done(function (data) {
+            var list = data.subfile_list;
+            if (list && list.length) {
+                dfd.resolve(list);
             } else {
-                this.upload(url)
-                .done(function (infohash) {
-                    history.replaceState(null, null, location.pathname + '?infohash=' + infohash);
-                    dfd.resolve(infohash);
-                })
-                .fail(function () {
-                    dfd.reject();
-                });
+                dfd.reject();
             }
+        })
+        .fail(function () {
+            dfd.reject();
+        });
 
-            return dfd.promise();
-        },
-        upload: function (url) {
-            var dfd = $.Deferred();
+        return dfd.promise();
+    }
 
-            requestTorrent(url)
-            .done(function (torrent) {
-                var formData = new FormData(),
-                    xhr = new XMLHttpRequest();
+    function yunCookie (name) {
+        var dfd = $.Deferred();
 
-                formData.append('Filename', 'null.torrent');
-                formData.append('Filedata', torrent, 'null.torrent');
-                formData.append('Upload', 'Submit Query');
+        chrome.runtime.sendMessage({
+            action: 'cookie',
+            data: {name: name}
+        }, function (value) {
+            dfd.resolve(value);
+        });
 
-                xhr.open('POST', 'http://i.vod.xunlei.com/submit/post_bt', true);
-                xhr.responseType = 'json';
-                xhr.onload = function () {
-                    var data = xhr.response;
-                    if (data.infohash) {
-                        dfd.resolve(data.infohash);
-                    } else {
-                        dfd.reject();
-                    }
-                };
-                xhr.onerror = function () {
-                    dfd.reject();
-                };
+        return dfd.promise();
+    }
 
-                xhr.send(formData);
-            })
-            .fail(function () {
+    function buildVodUrl (infohash) {
+        var dfd = $.Deferred();
+
+        $.when(yunCookie('sessionid'), yunCookie('userid'))
+        .done(function (sid, uid) {
+            if (sid && uid) {
+                var url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                dfd.resolve(url);
+            } else {
                 dfd.reject();
-            });
+            }
+        })
+        .fail(function () {
+            dfd.reject();
+        });
 
-            return dfd.promise();
-        },
+        return dfd.promise();
+    }
 
-        requestList: function (infohash) {
-            var dfd = $.Deferred();
+    function requestUrlByVod(vodUrl) {
+        var dfd = $.Deferred();
 
-            $.ajax({
-                url: 'http://i.vod.xunlei.com/req_subBT/info_hash/' + infohash + '/req_num/10/req_offset/0',
-                type: 'get',
-                timeout: 30 * 1000,
-                dataType: 'json'
-            })
-            .done(function (data) {
-                var list = data.subfile_list;
-                if (list && list.length) {
-                    dfd.resolve(list);
-                } else {
-                    dfd.reject();
-                }
-            })
-            .fail(function () {
-                dfd.reject();
-            });
+        $.ajax({
+            url: vodUrl,
+            type: 'get',
+            dataType: 'json',
+            timeout: 30 * 1000
+        })
+        .done(function (data) {
+            var urls = (data && data.resp) ? data.resp.vodinfo_list : [],
+            url = '';
+            if (urls && urls.length) {
+                dfd.resolve(urls);
+            } else {
+                dfd.reject('转码未完成，无法播放');
+            }
+        })
+        .fail(function () {
+            dfd.reject('网络错误');
+        });
 
-            return dfd.promise();
-        },
+        return dfd.promise();
+    }
 
-        requestUrl: function (vodUrl) {
-            var dfd = $.Deferred();
+    function requestUrlByHash (infohash) {
+        var dfd = $.Deferred();
 
-            $.ajax({
-                url: vodUrl,
-                type: 'get',
-                dataType: 'json',
-                timeout: 30 * 1000
-            })
-            .done(function (data) {
-                var urls = (data && data.resp) ? data.resp.vodinfo_list : [],
-                    url = '';
-                if (urls) {
-                    if (urls.length) {
-                        aelem.setAttribute('href', urls[0].vod_url);
-                        url = 'http://' + aelem.host + '/*';
-                        chrome.runtime.sendMessage({action: 'referer', data: {url: url}});
-                    }
-                    dfd.resolve(urls);
-                } else {
-                    dfd.reject();
-                }
-            })
-            .fail(function () {
-                dfd.reject();
-            });
-
-            return dfd.promise();
-        },
-
-        requestUrl2: function () {
-            var dfd = $.Deferred(),
-                yun = this;
-
-            this.requestHash()
-            .pipe(function (infohash) {
-                return yun.requestVod(infohash);
-            })
-            .pipe(function (vodUrl) {
-                return yun.requestUrl(vodUrl);
-            })
+        buildVodUrl(infohash)
+        .done(function (vodUrl) {
+            requestUrlByVod(vodUrl)
             .done(function (urls) {
                 dfd.resolve(urls);
             })
-            .fail(function () {
-                dfd.reject();
+            .fail(function (msg) {
+                dfd.reject(msg);
             });
+        })
+        .fail(function (msg) {
+            dfd.reject(msg);
+        });
 
-            return dfd.promise();
-        },
+        return dfd.promise();
+    }
 
-        hasLogin: function () {
-            var dfd = $.Deferred();
-
-            $.ajax({
-                url: 'http://i.vod.xunlei.com/req_history_play_list/req_num/30/req_offset/0?type=kongjian&order=create&folder_id=0',
-                type: 'get',
-                dataType: 'json',
-                timeout: 30 * 1000
-            })
-            .done(function (data) {
-                if (data.resp.error_msg) {
-                    dfd.reject();
-                } else {
-                    dfd.resolve();
-                }
-            })
-            .fail(function () {
-                dfd.reject();
-            });
-
-            return dfd.promise();
-        },
-
-        requestVod: function (infohash) {
-            var dfd = $.Deferred();
-
-            $.when(this.cookie('sessionid'), this.cookie('userid'))
-            .done(function (sid, uid) {
-                if (sid && uid) {
-                    var url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
-                    dfd.resolve(url);
-                } else {
-                    dfd.reject();
-                }
-            })
-            .fail(function () {
-                dfd.reject();
-            });
-
-            return dfd.promise();
-        },
-
-        cookie: function (name) {
-            var dfd = $.Deferred();
-
-            chrome.runtime.sendMessage({
-                action: 'cookie',
-                data: {name: name}
-            }, function (value) {
-                dfd.resolve(value);
-            });
-
-            return dfd.promise();
-        }
+    module.exports = {
+        requestHash: requestHash,
+        requestUrlByHash: requestUrlByHash,
+        hasLogin: hasLogin,
+        cookie: yunCookie
     };
 });
 

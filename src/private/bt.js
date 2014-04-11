@@ -107,12 +107,12 @@ define('private/bt', function (require, exports, module) {
             }
         })
         .on('click', 'a.private-play-download-link', function (evt) {
-            evt.preventDefault();
-
+            // 拦截
             if (adapter.isDefaultPrevented(evt)) {
                 return;
             }
 
+            evt.preventDefault();
             alertify.log('正在下载中... 同时 `Shift+单击` 可云播');
             download($(this).prop('href'))
             .fail(function () {

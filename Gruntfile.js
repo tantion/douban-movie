@@ -25,6 +25,7 @@ module.exports = function(grunt) {
           'src/lib/*.js',
           'src/lib/douban/dialog.js',
           'src/lib/tipsy/jquery.tipsy.js',
+          'src/lib/alertify/alertify.js',
           'src/js/*.js',
           'src/app.js'
         ],
@@ -36,6 +37,7 @@ module.exports = function(grunt) {
           'src/lib/jquery.js',
           'src/lib/jquery.lazyload.js',
           'src/lib/jquery.magnific-popup.js',
+          'src/lib/alertify/alertify.js',
           'src/lib/purl.js',
           'src/bootstrap/js/bootstrap.js',
           'src/private/*.js',
@@ -48,6 +50,8 @@ module.exports = function(grunt) {
           'src/css/*.css',
           '!src/css/private.css',
           'src/lib/tipsy/tipsy.css',
+          'src/lib/alertify/themes/alertify.core.css',
+          'src/lib/alertify/themes/alertify.default.css',
           'src/lib/douban/dialog.css'
         ],
         dest: 'src/bootstrap.css'
@@ -55,6 +59,8 @@ module.exports = function(grunt) {
       privatecss: {
         src: [
           'src/lib/magnific-popup.css',
+          'src/lib/alertify/themes/alertify.core.css',
+          'src/lib/alertify/themes/alertify.default.css',
           'src/css/private.css'
         ],
         dest: 'src/private.css'
