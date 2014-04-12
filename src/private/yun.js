@@ -10,6 +10,13 @@ define('private/yun', function (require, exports, module) {
         tt = require('js/bt-tiantang'),
         bt = require('private/bt');
 
+    function isInfoHash (hash) {
+        if (/\w+/i.test(hash)) {
+            return true;
+        }
+        return false;
+    }
+
     function hasLogin () {
         var dfd = $.Deferred();
 
@@ -66,12 +73,6 @@ define('private/yun', function (require, exports, module) {
         return dfd.promise();
     }
 
-    function checkUrl (url) {
-        var dfd = $.Defer();
-
-        return dfd.promise();
-    }
-
     function requestHash (url) {
         var dfd = $.Deferred(),
             loader = null;
@@ -103,14 +104,7 @@ define('private/yun', function (require, exports, module) {
                         dfd.reject(msg);
                     });
                 } else {
-                    checkUrl(url)
-                    .done(function (hash) {
-                        hashCache[url] = hash;
-                        dfd.resolve(hash);
-                    })
-                    .fail(function (msg) {
-                        dfd.reject(msg);
-                    });
+                    dfd.resolve(url);
                 }
             })
             .fail(function (msg) {
@@ -164,7 +158,12 @@ define('private/yun', function (require, exports, module) {
         $.when(yunCookie('sessionid'), yunCookie('userid'))
         .done(function (sid, uid) {
             if (sid && uid) {
-                var url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                var url;
+                if (isInfoHash(infohash)) {
+                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                } else {
+                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=' + encodeURIComponent(infohash) + '&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                }
                 dfd.resolve(url);
             } else {
                 dfd.reject('需要先登录迅雷');
@@ -228,10 +227,65 @@ define('private/yun', function (require, exports, module) {
         return dfd.promise();
     }
 
+    function addByUrl (url) {
+        var dfd = $.Deferred();
+
+        requestHash(url)
+        .done(function (hash) {
+            $.when(yunCookie('userid'), yunCookie('sessionid'))
+            .done(function (uid, sid) {
+                var post = {};
+
+                if (isInfoHash(hash)) {
+                    post.urls = [{
+                        id: 1,
+                        url: 'bt://' + hash
+                    }];
+                } else {
+                    post.urls = [{
+                        id: 0,
+                        url: hash
+                    }];
+                }
+
+                if (uid && sid) {
+                    $.ajax({
+                        url: 'http://i.vod.xunlei.com/req_add_record?from=vlist&platform=0&userid=' + uid + '&sessionid=' + sid + '&folder_id=0',
+                        type: 'post',
+                        processData: false,
+                        data: JSON.stringify(post),
+                        dataType: 'json'
+                    })
+                    .done(function (data) {
+                        if (data && data.resp && data.resp.res && data.resp.res.length) {
+                            dfd.resolve();
+                        } else {
+                            dfd.reject('添加失败，可能是地址错误');
+                        }
+                    })
+                    .fail(function () {
+                        dfd.reject('网络错误');
+                    });
+                } else {
+                    dfd.reject('你需要登录迅雷会员');
+                }
+            })
+            .fail(function () {
+                dfd.reject('网络错误');
+            });
+        })
+        .fail(function (msg) {
+            dfd.reject(msg);
+        });
+
+        return dfd.promise();
+    }
+
     module.exports = {
         requestHash: requestHash,
         requestUrlByHash: requestUrlByHash,
         hasLogin: hasLogin,
+        addByUrl: addByUrl,
         cookie: yunCookie
     };
 });

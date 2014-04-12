@@ -17473,8 +17473,23 @@ define('private/adapter', function (require, exports, module) {
             }
             return false;
         },
+        isAddAction: function (evt) {
+            if (evt && !evt.shiftKey && !evt.altKey) {
+                if (navigator.userAgent.match(/Macintosh/i)) {
+                    if (!evt.ctrlKey && evt.metaKey) {
+                        return true;
+                    }
+                } else {
+                    if (evt.ctrlKey && !evt.metaKey) {
+                        return true;
+                    }
+                }
+                return true;
+            }
+            return false;
+        },
         isDefaultPrevented: function (evt) {
-            if (adapter.isYunAction(evt) || adapter.isPrivateAction(evt)) {
+            if (adapter.isYunAction(evt) || adapter.isPrivateAction(evt) || adapter.isAddAction(evt)) {
                 return true;
             }
             return false;
@@ -17833,7 +17848,7 @@ define('private/player', function (require, exports, module) {
         var dfd = $.Deferred();
 
         if (infohash) {
-            dfd.resovle(infohash);
+            dfd.resolve(infohash);
         } else {
             if (url) {
                 yun.requestHash(url)
@@ -17920,6 +17935,13 @@ define('private/yun', function (require, exports, module) {
         tt = require('js/bt-tiantang'),
         bt = require('private/bt');
 
+    function isInfoHash (hash) {
+        if (/\w+/i.test(hash)) {
+            return true;
+        }
+        return false;
+    }
+
     function hasLogin () {
         var dfd = $.Deferred();
 
@@ -17976,12 +17998,6 @@ define('private/yun', function (require, exports, module) {
         return dfd.promise();
     }
 
-    function checkUrl (url) {
-        var dfd = $.Defer();
-
-        return dfd.promise();
-    }
-
     function requestHash (url) {
         var dfd = $.Deferred(),
             loader = null;
@@ -18013,14 +18029,7 @@ define('private/yun', function (require, exports, module) {
                         dfd.reject(msg);
                     });
                 } else {
-                    checkUrl(url)
-                    .done(function (hash) {
-                        hashCache[url] = hash;
-                        dfd.resolve(hash);
-                    })
-                    .fail(function (msg) {
-                        dfd.reject(msg);
-                    });
+                    dfd.resolve(url);
                 }
             })
             .fail(function (msg) {
@@ -18074,7 +18083,12 @@ define('private/yun', function (require, exports, module) {
         $.when(yunCookie('sessionid'), yunCookie('userid'))
         .done(function (sid, uid) {
             if (sid && uid) {
-                var url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                var url;
+                if (isInfoHash(infohash)) {
+                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                } else {
+                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=' + encodeURIComponent(infohash) + '&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                }
                 dfd.resolve(url);
             } else {
                 dfd.reject('需要先登录迅雷');
@@ -18138,10 +18152,65 @@ define('private/yun', function (require, exports, module) {
         return dfd.promise();
     }
 
+    function addByUrl (url) {
+        var dfd = $.Deferred();
+
+        requestHash(url)
+        .done(function (hash) {
+            $.when(yunCookie('userid'), yunCookie('sessionid'))
+            .done(function (uid, sid) {
+                var post = {};
+
+                if (isInfoHash(hash)) {
+                    post.urls = [{
+                        id: 1,
+                        url: 'bt://' + hash
+                    }];
+                } else {
+                    post.urls = [{
+                        id: 0,
+                        url: hash
+                    }];
+                }
+
+                if (uid && sid) {
+                    $.ajax({
+                        url: 'http://i.vod.xunlei.com/req_add_record?from=vlist&platform=0&userid=' + uid + '&sessionid=' + sid + '&folder_id=0',
+                        type: 'post',
+                        processData: false,
+                        data: JSON.stringify(post),
+                        dataType: 'json'
+                    })
+                    .done(function (data) {
+                        if (data && data.resp && data.resp.res && data.resp.res.length) {
+                            dfd.resolve();
+                        } else {
+                            dfd.reject('添加失败，可能是地址错误');
+                        }
+                    })
+                    .fail(function () {
+                        dfd.reject('网络错误');
+                    });
+                } else {
+                    dfd.reject('你需要登录迅雷会员');
+                }
+            })
+            .fail(function () {
+                dfd.reject('网络错误');
+            });
+        })
+        .fail(function (msg) {
+            dfd.reject(msg);
+        });
+
+        return dfd.promise();
+    }
+
     module.exports = {
         requestHash: requestHash,
         requestUrlByHash: requestUrlByHash,
         hasLogin: hasLogin,
+        addByUrl: addByUrl,
         cookie: yunCookie
     };
 });
@@ -18155,7 +18224,8 @@ define('private/yunbo', function (require, exports, module) {
     var $ = require('jquery'),
         yun = require('private/yun'),
         adapter = require('private/adapter'),
-        alertify = require('alertify');
+        alertify = require('alertify'),
+        ctrlKey = navigator.userAgent.match(/Macintosh/i) ? 'command' :  'ctrl';
 
     function closeLogs () {
         $('article.alertify-log-show').click();
@@ -18163,18 +18233,28 @@ define('private/yunbo', function (require, exports, module) {
 
     function openYunbo (href, usePrivate) {
         closeLogs();
-        alertify.log('正在加载云播地址...');
+        alertify.log('正在加载云播地址... <br />同时 `' + ctrlKey + '+单击` 可添加到云播', '', 10000);
         yun.requestHash(href)
         .done(function (hash) {
-            var url = '';
-            if (usePrivate) {
-                url = 'http://tantion.com/private/play.html?infohash=' + hash;
-            } else {
-                url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=bt%3A%2F%2F' + hash + '&playwindow=player';
-            }
-            chrome.runtime.sendMessage({action: 'openurl', data: {url: url}});
             closeLogs();
             alertify.success('准备云播');
+
+            yun.requestUrlByHash(hash)
+            .done(function () {
+                var url = '';
+                if (usePrivate) {
+                    url = 'http://tantion.com/private/play.html?infohash=' + hash;
+                } else {
+                    url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=bt%3A%2F%2F' + hash + '&playwindow=player';
+                }
+                chrome.runtime.sendMessage({action: 'openurl', data: {url: url}});
+                closeLogs();
+                alertify.success('已找到云播资源，正在打开播放页面', 1000);
+            })
+            .fail(function (msg) {
+                closeLogs();
+                alertify.error(msg || '云播失败，未知错误');
+            });
         })
         .fail(function (msg) {
             closeLogs();
@@ -18182,6 +18262,20 @@ define('private/yunbo', function (require, exports, module) {
         });
     }
 
+    function addYunbo (href) {
+        closeLogs();
+        alertify.log('正在添加地址到云播...', '', 10000);
+
+        yun.addByUrl(href)
+        .done(function () {
+            closeLogs();
+            alertify.success('已添加找到云播空间', 1000);
+        })
+        .fail(function (msg) {
+            closeLogs();
+            alertify.error(msg || '添加云播失败，未知错误');
+        });
+    }
 
     function init () {
         $(document)
@@ -18195,6 +18289,10 @@ define('private/yunbo', function (require, exports, module) {
             else if (adapter.isPrivateAction(evt)) {
                 evt.preventDefault();
                 openYunbo(href, true);
+            }
+            else if (adapter.isAddAction(evt)) {
+                evt.preventDefault();
+                addYunbo(href);
             }
         });
     }

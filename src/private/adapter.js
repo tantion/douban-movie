@@ -17,8 +17,23 @@ define('private/adapter', function (require, exports, module) {
             }
             return false;
         },
+        isAddAction: function (evt) {
+            if (evt && !evt.shiftKey && !evt.altKey) {
+                if (navigator.userAgent.match(/Macintosh/i)) {
+                    if (!evt.ctrlKey && evt.metaKey) {
+                        return true;
+                    }
+                } else {
+                    if (evt.ctrlKey && !evt.metaKey) {
+                        return true;
+                    }
+                }
+                return true;
+            }
+            return false;
+        },
         isDefaultPrevented: function (evt) {
-            if (adapter.isYunAction(evt) || adapter.isPrivateAction(evt)) {
+            if (adapter.isYunAction(evt) || adapter.isPrivateAction(evt) || adapter.isAddAction(evt)) {
                 return true;
             }
             return false;

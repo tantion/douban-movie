@@ -32,7 +32,7 @@ define('private/player', function (require, exports, module) {
         var dfd = $.Deferred();
 
         if (infohash) {
-            dfd.resovle(infohash);
+            dfd.resolve(infohash);
         } else {
             if (url) {
                 yun.requestHash(url)
