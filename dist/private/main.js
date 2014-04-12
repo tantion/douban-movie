@@ -1,1 +1,1 @@
-define("private/main",function(require){"use strict";var a=[require("private/handle-detail"),require("private/lazy-load"),require("private/bt"),require("private/adapter"),require("private/player")],b=require("jquery");a.forEach(function(a){b.isFunction(a.init)&&a.init()})});
+define("private/main",function(require){"use strict";var a=[require("private/handle-detail"),require("private/lazy-load"),require("private/bt"),require("private/yunbo"),require("private/player")],b=require("jquery");a.forEach(function(a){b.isFunction(a.init)&&a.init()})});
