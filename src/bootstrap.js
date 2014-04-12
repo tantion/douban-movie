@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.0.0 - 2014-04-11
+/*! douban-movie-improve - v2.0.0 - 2014-04-13
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -15515,6 +15515,42 @@ $.magnificPopup.registerModule(RETINA_NS, {
 }(this));
 
 //
+// seajs  jquery
+//
+define('jquery', function (require, exports, module) {
+    "use strict";
+
+    module.exports = window.noConfictJQuery;
+});
+
+//
+// Mustache
+//
+define('mustache', function (require, exports, module) {
+    "use strict";
+
+    module.exports = window.Mustache;
+});
+
+//
+// purl
+//
+define('purl', function (require, exports, module) {
+    "use strict";
+
+    module.exports = window.purl;
+});
+
+//
+// async
+//
+define('async', function (require, exports, module) {
+    "use strict";
+
+    module.exports = window.async;
+});
+
+//
 // bt 搜索提供者
 // http://yun.baidu.com
 //
@@ -16999,42 +17035,6 @@ define('js/util-decodefile', function(require, exports, module) {
     module.exports = {
         decode: shtg_calcfilehash
     };
-});
-
-//
-// seajs  jquery
-//
-define('jquery', [], function (require, exports, module) {
-    "use strict";
-
-    module.exports = window.noConfictJQuery;
-});
-
-//
-// Mustache
-//
-define('mustache', [], function (require, exports, module) {
-    "use strict";
-
-    module.exports = window.Mustache;
-});
-
-//
-// purl
-//
-define('purl', [], function (require, exports, module) {
-    "use strict";
-
-    module.exports = window.purl;
-});
-
-//
-// async
-//
-define('async', [], function (require, exports, module) {
-    "use strict";
-
-    module.exports = window.async;
 });
 
 // main

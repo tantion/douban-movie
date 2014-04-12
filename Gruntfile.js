@@ -26,6 +26,7 @@ module.exports = function(grunt) {
           'src/lib/douban/dialog.js',
           'src/lib/tipsy/jquery.tipsy.js',
           'src/lib/alertify/alertify.js',
+          'src/alias.js',
           'src/js/*.js',
           'src/app.js'
         ],
@@ -34,13 +35,13 @@ module.exports = function(grunt) {
       privatejs: {
         src: [
           'src/seajs/sea-debug.js',
-          'src/lib/jquery.js',
-          'src/lib/jquery.lazyload.js',
-          'src/lib/jquery.magnific-popup.js',
+          'src/lib/*.js',
           'src/lib/alertify/alertify.js',
-          'src/lib/purl.js',
           'src/bootstrap/js/bootstrap.js',
+          'src/js/bt-tiantang.js',
           'src/private/*.js',
+          'src/alias.js',
+          'src/private/main.js',
           'src/private-app.js'
         ],
         dest: 'src/private.js'
@@ -155,7 +156,7 @@ module.exports = function(grunt) {
       },
       gruntfile: {
         files: '<%= jshint.gruntfile.src %>',
-        tasks: ['jshint:gruntfile']
+        tasks: ['jshint:gruntfile', 'concat']
       },
       packagefile: {
         files: 'package.json',

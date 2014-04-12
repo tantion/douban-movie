@@ -1,6 +1,9 @@
 .lazy-load-img {
     max-width: 100%;
 }
+
+body a,
+body a:hover,
 .magic-popup-link,
 .magic-popup-link:hover {
     display: inline;

@@ -64,4 +64,10 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendRespone) {
             chrome.webRequest.onBeforeSendHeaders.addListener(refererHandle, {urls: urls}, ["blocking", "requestHeaders"]);
         }
     }
+    else if (message.action === 'openurl') {
+        var href = message.data.url;
+        if (href) {
+            chrome.tabs.create({url: href});
+        }
+    }
 });

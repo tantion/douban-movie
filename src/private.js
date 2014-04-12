@@ -948,6 +948,964 @@ seajs.config = function(configData) {
 
 })(this);
 
+(function () {
+
+    var async = {};
+
+    // global on the server, window in the browser
+    var root, previous_async;
+
+    root = this;
+    if (root != null) {
+      previous_async = root.async;
+    }
+
+    async.noConflict = function () {
+        root.async = previous_async;
+        return async;
+    };
+
+    function only_once(fn) {
+        var called = false;
+        return function() {
+            if (called) throw new Error("Callback was already called.");
+            called = true;
+            fn.apply(root, arguments);
+        }
+    }
+
+    //// cross-browser compatiblity functions ////
+
+    var _each = function (arr, iterator) {
+        if (arr.forEach) {
+            return arr.forEach(iterator);
+        }
+        for (var i = 0; i < arr.length; i += 1) {
+            iterator(arr[i], i, arr);
+        }
+    };
+
+    var _map = function (arr, iterator) {
+        if (arr.map) {
+            return arr.map(iterator);
+        }
+        var results = [];
+        _each(arr, function (x, i, a) {
+            results.push(iterator(x, i, a));
+        });
+        return results;
+    };
+
+    var _reduce = function (arr, iterator, memo) {
+        if (arr.reduce) {
+            return arr.reduce(iterator, memo);
+        }
+        _each(arr, function (x, i, a) {
+            memo = iterator(memo, x, i, a);
+        });
+        return memo;
+    };
+
+    var _keys = function (obj) {
+        if (Object.keys) {
+            return Object.keys(obj);
+        }
+        var keys = [];
+        for (var k in obj) {
+            if (obj.hasOwnProperty(k)) {
+                keys.push(k);
+            }
+        }
+        return keys;
+    };
+
+    //// exported async module functions ////
+
+    //// nextTick implementation with browser-compatible fallback ////
+    if (typeof process === 'undefined' || !(process.nextTick)) {
+        if (typeof setImmediate === 'function') {
+            async.nextTick = function (fn) {
+                // not a direct alias for IE10 compatibility
+                setImmediate(fn);
+            };
+            async.setImmediate = async.nextTick;
+        }
+        else {
+            async.nextTick = function (fn) {
+                setTimeout(fn, 0);
+            };
+            async.setImmediate = async.nextTick;
+        }
+    }
+    else {
+        async.nextTick = process.nextTick;
+        if (typeof setImmediate !== 'undefined') {
+            async.setImmediate = function (fn) {
+              // not a direct alias for IE10 compatibility
+              setImmediate(fn);
+            };
+        }
+        else {
+            async.setImmediate = async.nextTick;
+        }
+    }
+
+    async.each = function (arr, iterator, callback) {
+        callback = callback || function () {};
+        if (!arr.length) {
+            return callback();
+        }
+        var completed = 0;
+        _each(arr, function (x) {
+            iterator(x, only_once(function (err) {
+                if (err) {
+                    callback(err);
+                    callback = function () {};
+                }
+                else {
+                    completed += 1;
+                    if (completed >= arr.length) {
+                        callback(null);
+                    }
+                }
+            }));
+        });
+    };
+    async.forEach = async.each;
+
+    async.eachSeries = function (arr, iterator, callback) {
+        callback = callback || function () {};
+        if (!arr.length) {
+            return callback();
+        }
+        var completed = 0;
+        var iterate = function () {
+            iterator(arr[completed], function (err) {
+                if (err) {
+                    callback(err);
+                    callback = function () {};
+                }
+                else {
+                    completed += 1;
+                    if (completed >= arr.length) {
+                        callback(null);
+                    }
+                    else {
+                        iterate();
+                    }
+                }
+            });
+        };
+        iterate();
+    };
+    async.forEachSeries = async.eachSeries;
+
+    async.eachLimit = function (arr, limit, iterator, callback) {
+        var fn = _eachLimit(limit);
+        fn.apply(null, [arr, iterator, callback]);
+    };
+    async.forEachLimit = async.eachLimit;
+
+    var _eachLimit = function (limit) {
+
+        return function (arr, iterator, callback) {
+            callback = callback || function () {};
+            if (!arr.length || limit <= 0) {
+                return callback();
+            }
+            var completed = 0;
+            var started = 0;
+            var running = 0;
+
+            (function replenish () {
+                if (completed >= arr.length) {
+                    return callback();
+                }
+
+                while (running < limit && started < arr.length) {
+                    started += 1;
+                    running += 1;
+                    iterator(arr[started - 1], function (err) {
+                        if (err) {
+                            callback(err);
+                            callback = function () {};
+                        }
+                        else {
+                            completed += 1;
+                            running -= 1;
+                            if (completed >= arr.length) {
+                                callback();
+                            }
+                            else {
+                                replenish();
+                            }
+                        }
+                    });
+                }
+            })();
+        };
+    };
+
+
+    var doParallel = function (fn) {
+        return function () {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(null, [async.each].concat(args));
+        };
+    };
+    var doParallelLimit = function(limit, fn) {
+        return function () {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(null, [_eachLimit(limit)].concat(args));
+        };
+    };
+    var doSeries = function (fn) {
+        return function () {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(null, [async.eachSeries].concat(args));
+        };
+    };
+
+
+    var _asyncMap = function (eachfn, arr, iterator, callback) {
+        var results = [];
+        arr = _map(arr, function (x, i) {
+            return {index: i, value: x};
+        });
+        eachfn(arr, function (x, callback) {
+            iterator(x.value, function (err, v) {
+                results[x.index] = v;
+                callback(err);
+            });
+        }, function (err) {
+            callback(err, results);
+        });
+    };
+    async.map = doParallel(_asyncMap);
+    async.mapSeries = doSeries(_asyncMap);
+    async.mapLimit = function (arr, limit, iterator, callback) {
+        return _mapLimit(limit)(arr, iterator, callback);
+    };
+
+    var _mapLimit = function(limit) {
+        return doParallelLimit(limit, _asyncMap);
+    };
+
+    // reduce only has a series version, as doing reduce in parallel won't
+    // work in many situations.
+    async.reduce = function (arr, memo, iterator, callback) {
+        async.eachSeries(arr, function (x, callback) {
+            iterator(memo, x, function (err, v) {
+                memo = v;
+                callback(err);
+            });
+        }, function (err) {
+            callback(err, memo);
+        });
+    };
+    // inject alias
+    async.inject = async.reduce;
+    // foldl alias
+    async.foldl = async.reduce;
+
+    async.reduceRight = function (arr, memo, iterator, callback) {
+        var reversed = _map(arr, function (x) {
+            return x;
+        }).reverse();
+        async.reduce(reversed, memo, iterator, callback);
+    };
+    // foldr alias
+    async.foldr = async.reduceRight;
+
+    var _filter = function (eachfn, arr, iterator, callback) {
+        var results = [];
+        arr = _map(arr, function (x, i) {
+            return {index: i, value: x};
+        });
+        eachfn(arr, function (x, callback) {
+            iterator(x.value, function (v) {
+                if (v) {
+                    results.push(x);
+                }
+                callback();
+            });
+        }, function (err) {
+            callback(_map(results.sort(function (a, b) {
+                return a.index - b.index;
+            }), function (x) {
+                return x.value;
+            }));
+        });
+    };
+    async.filter = doParallel(_filter);
+    async.filterSeries = doSeries(_filter);
+    // select alias
+    async.select = async.filter;
+    async.selectSeries = async.filterSeries;
+
+    var _reject = function (eachfn, arr, iterator, callback) {
+        var results = [];
+        arr = _map(arr, function (x, i) {
+            return {index: i, value: x};
+        });
+        eachfn(arr, function (x, callback) {
+            iterator(x.value, function (v) {
+                if (!v) {
+                    results.push(x);
+                }
+                callback();
+            });
+        }, function (err) {
+            callback(_map(results.sort(function (a, b) {
+                return a.index - b.index;
+            }), function (x) {
+                return x.value;
+            }));
+        });
+    };
+    async.reject = doParallel(_reject);
+    async.rejectSeries = doSeries(_reject);
+
+    var _detect = function (eachfn, arr, iterator, main_callback) {
+        eachfn(arr, function (x, callback) {
+            iterator(x, function (result) {
+                if (result) {
+                    main_callback(x);
+                    main_callback = function () {};
+                }
+                else {
+                    callback();
+                }
+            });
+        }, function (err) {
+            main_callback();
+        });
+    };
+    async.detect = doParallel(_detect);
+    async.detectSeries = doSeries(_detect);
+
+    async.some = function (arr, iterator, main_callback) {
+        async.each(arr, function (x, callback) {
+            iterator(x, function (v) {
+                if (v) {
+                    main_callback(true);
+                    main_callback = function () {};
+                }
+                callback();
+            });
+        }, function (err) {
+            main_callback(false);
+        });
+    };
+    // any alias
+    async.any = async.some;
+
+    async.every = function (arr, iterator, main_callback) {
+        async.each(arr, function (x, callback) {
+            iterator(x, function (v) {
+                if (!v) {
+                    main_callback(false);
+                    main_callback = function () {};
+                }
+                callback();
+            });
+        }, function (err) {
+            main_callback(true);
+        });
+    };
+    // all alias
+    async.all = async.every;
+
+    async.sortBy = function (arr, iterator, callback) {
+        async.map(arr, function (x, callback) {
+            iterator(x, function (err, criteria) {
+                if (err) {
+                    callback(err);
+                }
+                else {
+                    callback(null, {value: x, criteria: criteria});
+                }
+            });
+        }, function (err, results) {
+            if (err) {
+                return callback(err);
+            }
+            else {
+                var fn = function (left, right) {
+                    var a = left.criteria, b = right.criteria;
+                    return a < b ? -1 : a > b ? 1 : 0;
+                };
+                callback(null, _map(results.sort(fn), function (x) {
+                    return x.value;
+                }));
+            }
+        });
+    };
+
+    async.auto = function (tasks, callback) {
+        callback = callback || function () {};
+        var keys = _keys(tasks);
+        if (!keys.length) {
+            return callback(null);
+        }
+
+        var results = {};
+
+        var listeners = [];
+        var addListener = function (fn) {
+            listeners.unshift(fn);
+        };
+        var removeListener = function (fn) {
+            for (var i = 0; i < listeners.length; i += 1) {
+                if (listeners[i] === fn) {
+                    listeners.splice(i, 1);
+                    return;
+                }
+            }
+        };
+        var taskComplete = function () {
+            _each(listeners.slice(0), function (fn) {
+                fn();
+            });
+        };
+
+        addListener(function () {
+            if (_keys(results).length === keys.length) {
+                callback(null, results);
+                callback = function () {};
+            }
+        });
+
+        _each(keys, function (k) {
+            var task = (tasks[k] instanceof Function) ? [tasks[k]]: tasks[k];
+            var taskCallback = function (err) {
+                var args = Array.prototype.slice.call(arguments, 1);
+                if (args.length <= 1) {
+                    args = args[0];
+                }
+                if (err) {
+                    var safeResults = {};
+                    _each(_keys(results), function(rkey) {
+                        safeResults[rkey] = results[rkey];
+                    });
+                    safeResults[k] = args;
+                    callback(err, safeResults);
+                    // stop subsequent errors hitting callback multiple times
+                    callback = function () {};
+                }
+                else {
+                    results[k] = args;
+                    async.setImmediate(taskComplete);
+                }
+            };
+            var requires = task.slice(0, Math.abs(task.length - 1)) || [];
+            var ready = function () {
+                return _reduce(requires, function (a, x) {
+                    return (a && results.hasOwnProperty(x));
+                }, true) && !results.hasOwnProperty(k);
+            };
+            if (ready()) {
+                task[task.length - 1](taskCallback, results);
+            }
+            else {
+                var listener = function () {
+                    if (ready()) {
+                        removeListener(listener);
+                        task[task.length - 1](taskCallback, results);
+                    }
+                };
+                addListener(listener);
+            }
+        });
+    };
+
+    async.waterfall = function (tasks, callback) {
+        callback = callback || function () {};
+        if (tasks.constructor !== Array) {
+          var err = new Error('First argument to waterfall must be an array of functions');
+          return callback(err);
+        }
+        if (!tasks.length) {
+            return callback();
+        }
+        var wrapIterator = function (iterator) {
+            return function (err) {
+                if (err) {
+                    callback.apply(null, arguments);
+                    callback = function () {};
+                }
+                else {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    var next = iterator.next();
+                    if (next) {
+                        args.push(wrapIterator(next));
+                    }
+                    else {
+                        args.push(callback);
+                    }
+                    async.setImmediate(function () {
+                        iterator.apply(null, args);
+                    });
+                }
+            };
+        };
+        wrapIterator(async.iterator(tasks))();
+    };
+
+    var _parallel = function(eachfn, tasks, callback) {
+        callback = callback || function () {};
+        if (tasks.constructor === Array) {
+            eachfn.map(tasks, function (fn, callback) {
+                if (fn) {
+                    fn(function (err) {
+                        var args = Array.prototype.slice.call(arguments, 1);
+                        if (args.length <= 1) {
+                            args = args[0];
+                        }
+                        callback.call(null, err, args);
+                    });
+                }
+            }, callback);
+        }
+        else {
+            var results = {};
+            eachfn.each(_keys(tasks), function (k, callback) {
+                tasks[k](function (err) {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    if (args.length <= 1) {
+                        args = args[0];
+                    }
+                    results[k] = args;
+                    callback(err);
+                });
+            }, function (err) {
+                callback(err, results);
+            });
+        }
+    };
+
+    async.parallel = function (tasks, callback) {
+        _parallel({ map: async.map, each: async.each }, tasks, callback);
+    };
+
+    async.parallelLimit = function(tasks, limit, callback) {
+        _parallel({ map: _mapLimit(limit), each: _eachLimit(limit) }, tasks, callback);
+    };
+
+    async.series = function (tasks, callback) {
+        callback = callback || function () {};
+        if (tasks.constructor === Array) {
+            async.mapSeries(tasks, function (fn, callback) {
+                if (fn) {
+                    fn(function (err) {
+                        var args = Array.prototype.slice.call(arguments, 1);
+                        if (args.length <= 1) {
+                            args = args[0];
+                        }
+                        callback.call(null, err, args);
+                    });
+                }
+            }, callback);
+        }
+        else {
+            var results = {};
+            async.eachSeries(_keys(tasks), function (k, callback) {
+                tasks[k](function (err) {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    if (args.length <= 1) {
+                        args = args[0];
+                    }
+                    results[k] = args;
+                    callback(err);
+                });
+            }, function (err) {
+                callback(err, results);
+            });
+        }
+    };
+
+    async.iterator = function (tasks) {
+        var makeCallback = function (index) {
+            var fn = function () {
+                if (tasks.length) {
+                    tasks[index].apply(null, arguments);
+                }
+                return fn.next();
+            };
+            fn.next = function () {
+                return (index < tasks.length - 1) ? makeCallback(index + 1): null;
+            };
+            return fn;
+        };
+        return makeCallback(0);
+    };
+
+    async.apply = function (fn) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        return function () {
+            return fn.apply(
+                null, args.concat(Array.prototype.slice.call(arguments))
+            );
+        };
+    };
+
+    var _concat = function (eachfn, arr, fn, callback) {
+        var r = [];
+        eachfn(arr, function (x, cb) {
+            fn(x, function (err, y) {
+                r = r.concat(y || []);
+                cb(err);
+            });
+        }, function (err) {
+            callback(err, r);
+        });
+    };
+    async.concat = doParallel(_concat);
+    async.concatSeries = doSeries(_concat);
+
+    async.whilst = function (test, iterator, callback) {
+        if (test()) {
+            iterator(function (err) {
+                if (err) {
+                    return callback(err);
+                }
+                async.whilst(test, iterator, callback);
+            });
+        }
+        else {
+            callback();
+        }
+    };
+
+    async.doWhilst = function (iterator, test, callback) {
+        iterator(function (err) {
+            if (err) {
+                return callback(err);
+            }
+            if (test()) {
+                async.doWhilst(iterator, test, callback);
+            }
+            else {
+                callback();
+            }
+        });
+    };
+
+    async.until = function (test, iterator, callback) {
+        if (!test()) {
+            iterator(function (err) {
+                if (err) {
+                    return callback(err);
+                }
+                async.until(test, iterator, callback);
+            });
+        }
+        else {
+            callback();
+        }
+    };
+
+    async.doUntil = function (iterator, test, callback) {
+        iterator(function (err) {
+            if (err) {
+                return callback(err);
+            }
+            if (!test()) {
+                async.doUntil(iterator, test, callback);
+            }
+            else {
+                callback();
+            }
+        });
+    };
+
+    async.queue = function (worker, concurrency) {
+        if (concurrency === undefined) {
+            concurrency = 1;
+        }
+        function _insert(q, data, pos, callback) {
+          if(data.constructor !== Array) {
+              data = [data];
+          }
+          _each(data, function(task) {
+              var item = {
+                  data: task,
+                  callback: typeof callback === 'function' ? callback : null
+              };
+
+              if (pos) {
+                q.tasks.unshift(item);
+              } else {
+                q.tasks.push(item);
+              }
+
+              if (q.saturated && q.tasks.length === concurrency) {
+                  q.saturated();
+              }
+              async.setImmediate(q.process);
+          });
+        }
+
+        var workers = 0;
+        var q = {
+            tasks: [],
+            concurrency: concurrency,
+            saturated: null,
+            empty: null,
+            drain: null,
+            push: function (data, callback) {
+              _insert(q, data, false, callback);
+            },
+            unshift: function (data, callback) {
+              _insert(q, data, true, callback);
+            },
+            process: function () {
+                if (workers < q.concurrency && q.tasks.length) {
+                    var task = q.tasks.shift();
+                    if (q.empty && q.tasks.length === 0) {
+                        q.empty();
+                    }
+                    workers += 1;
+                    var next = function () {
+                        workers -= 1;
+                        if (task.callback) {
+                            task.callback.apply(task, arguments);
+                        }
+                        if (q.drain && q.tasks.length + workers === 0) {
+                            q.drain();
+                        }
+                        q.process();
+                    };
+                    var cb = only_once(next);
+                    worker(task.data, cb);
+                }
+            },
+            length: function () {
+                return q.tasks.length;
+            },
+            running: function () {
+                return workers;
+            }
+        };
+        return q;
+    };
+
+    async.cargo = function (worker, payload) {
+        var working     = false,
+            tasks       = [];
+
+        var cargo = {
+            tasks: tasks,
+            payload: payload,
+            saturated: null,
+            empty: null,
+            drain: null,
+            push: function (data, callback) {
+                if(data.constructor !== Array) {
+                    data = [data];
+                }
+                _each(data, function(task) {
+                    tasks.push({
+                        data: task,
+                        callback: typeof callback === 'function' ? callback : null
+                    });
+                    if (cargo.saturated && tasks.length === payload) {
+                        cargo.saturated();
+                    }
+                });
+                async.setImmediate(cargo.process);
+            },
+            process: function process() {
+                if (working) return;
+                if (tasks.length === 0) {
+                    if(cargo.drain) cargo.drain();
+                    return;
+                }
+
+                var ts = typeof payload === 'number'
+                            ? tasks.splice(0, payload)
+                            : tasks.splice(0);
+
+                var ds = _map(ts, function (task) {
+                    return task.data;
+                });
+
+                if(cargo.empty) cargo.empty();
+                working = true;
+                worker(ds, function () {
+                    working = false;
+
+                    var args = arguments;
+                    _each(ts, function (data) {
+                        if (data.callback) {
+                            data.callback.apply(null, args);
+                        }
+                    });
+
+                    process();
+                });
+            },
+            length: function () {
+                return tasks.length;
+            },
+            running: function () {
+                return working;
+            }
+        };
+        return cargo;
+    };
+
+    var _console_fn = function (name) {
+        return function (fn) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            fn.apply(null, args.concat([function (err) {
+                var args = Array.prototype.slice.call(arguments, 1);
+                if (typeof console !== 'undefined') {
+                    if (err) {
+                        if (console.error) {
+                            console.error(err);
+                        }
+                    }
+                    else if (console[name]) {
+                        _each(args, function (x) {
+                            console[name](x);
+                        });
+                    }
+                }
+            }]));
+        };
+    };
+    async.log = _console_fn('log');
+    async.dir = _console_fn('dir');
+    /*async.info = _console_fn('info');
+    async.warn = _console_fn('warn');
+    async.error = _console_fn('error');*/
+
+    async.memoize = function (fn, hasher) {
+        var memo = {};
+        var queues = {};
+        hasher = hasher || function (x) {
+            return x;
+        };
+        var memoized = function () {
+            var args = Array.prototype.slice.call(arguments);
+            var callback = args.pop();
+            var key = hasher.apply(null, args);
+            if (key in memo) {
+                callback.apply(null, memo[key]);
+            }
+            else if (key in queues) {
+                queues[key].push(callback);
+            }
+            else {
+                queues[key] = [callback];
+                fn.apply(null, args.concat([function () {
+                    memo[key] = arguments;
+                    var q = queues[key];
+                    delete queues[key];
+                    for (var i = 0, l = q.length; i < l; i++) {
+                      q[i].apply(null, arguments);
+                    }
+                }]));
+            }
+        };
+        memoized.memo = memo;
+        memoized.unmemoized = fn;
+        return memoized;
+    };
+
+    async.unmemoize = function (fn) {
+      return function () {
+        return (fn.unmemoized || fn).apply(null, arguments);
+      };
+    };
+
+    async.times = function (count, iterator, callback) {
+        var counter = [];
+        for (var i = 0; i < count; i++) {
+            counter.push(i);
+        }
+        return async.map(counter, iterator, callback);
+    };
+
+    async.timesSeries = function (count, iterator, callback) {
+        var counter = [];
+        for (var i = 0; i < count; i++) {
+            counter.push(i);
+        }
+        return async.mapSeries(counter, iterator, callback);
+    };
+
+    async.compose = function (/* functions... */) {
+        var fns = Array.prototype.reverse.call(arguments);
+        return function () {
+            var that = this;
+            var args = Array.prototype.slice.call(arguments);
+            var callback = args.pop();
+            async.reduce(fns, args, function (newargs, fn, cb) {
+                fn.apply(that, newargs.concat([function () {
+                    var err = arguments[0];
+                    var nextargs = Array.prototype.slice.call(arguments, 1);
+                    cb(err, nextargs);
+                }]))
+            },
+            function (err, results) {
+                callback.apply(that, [err].concat(results));
+            });
+        };
+    };
+
+    var _applyEach = function (eachfn, fns /*args...*/) {
+        var go = function () {
+            var that = this;
+            var args = Array.prototype.slice.call(arguments);
+            var callback = args.pop();
+            return eachfn(fns, function (fn, cb) {
+                fn.apply(that, args.concat([cb]));
+            },
+            callback);
+        };
+        if (arguments.length > 2) {
+            var args = Array.prototype.slice.call(arguments, 2);
+            return go.apply(this, args);
+        }
+        else {
+            return go;
+        }
+    };
+    async.applyEach = doParallel(_applyEach);
+    async.applyEachSeries = doSeries(_applyEach);
+
+    async.forever = function (fn, callback) {
+        function next(err) {
+            if (err) {
+                if (callback) {
+                    return callback(err);
+                }
+                throw err;
+            }
+            fn(next);
+        }
+        next();
+    };
+
+    // AMD / RequireJS
+    if (typeof define !== 'undefined' && define.amd) {
+        define([], function () {
+            return async;
+        });
+    }
+    // Node.js
+    else if (typeof module !== 'undefined' && module.exports) {
+        module.exports = async;
+    }
+    // included directly via <script> tag
+    else {
+        root.async = async;
+    }
+
+}());
+
 /*!
  * jQuery JavaScript Library v1.9.1
  * http://jquery.com/
@@ -12825,6 +13783,838 @@ $.magnificPopup.registerModule(RETINA_NS, {
 
 /*>>fastclick*/
  _checkInstance(); })(window.jQuery || window.Zepto);
+/*!
+ * mustache.js - Logic-less {{mustache}} templates with JavaScript
+ * http://github.com/janl/mustache.js
+ */
+
+/*global define: false*/
+
+(function (root, factory) {
+  if (typeof exports === "object" && exports) {
+    factory(exports); // CommonJS
+  } else {
+    var mustache = {};
+    factory(mustache);
+    if (typeof define === "function" && define.amd) {
+      define(mustache); // AMD
+    } else {
+      root.Mustache = mustache; // <script>
+    }
+  }
+}(this, function (mustache) {
+
+  // Workaround for https://issues.apache.org/jira/browse/COUCHDB-577
+  // See https://github.com/janl/mustache.js/issues/189
+  var RegExp_test = RegExp.prototype.test;
+  function testRegExp(re, string) {
+    return RegExp_test.call(re, string);
+  }
+
+  var nonSpaceRe = /\S/;
+  function isWhitespace(string) {
+    return !testRegExp(nonSpaceRe, string);
+  }
+
+  var Object_toString = Object.prototype.toString;
+  var isArray = Array.isArray || function (object) {
+    return Object_toString.call(object) === '[object Array]';
+  };
+
+  function isFunction(object) {
+    return typeof object === 'function';
+  }
+
+  function escapeRegExp(string) {
+    return string.replace(/[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&");
+  }
+
+  var entityMap = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': '&quot;',
+    "'": '&#39;',
+    "/": '&#x2F;'
+  };
+
+  function escapeHtml(string) {
+    return String(string).replace(/[&<>"'\/]/g, function (s) {
+      return entityMap[s];
+    });
+  }
+
+  function escapeTags(tags) {
+    if (!isArray(tags) || tags.length !== 2) {
+      throw new Error('Invalid tags: ' + tags);
+    }
+
+    return [
+      new RegExp(escapeRegExp(tags[0]) + "\\s*"),
+      new RegExp("\\s*" + escapeRegExp(tags[1]))
+    ];
+  }
+
+  var whiteRe = /\s*/;
+  var spaceRe = /\s+/;
+  var equalsRe = /\s*=/;
+  var curlyRe = /\s*\}/;
+  var tagRe = /#|\^|\/|>|\{|&|=|!/;
+
+  /**
+   * Breaks up the given `template` string into a tree of tokens. If the `tags`
+   * argument is given here it must be an array with two string values: the
+   * opening and closing tags used in the template (e.g. [ "<%", "%>" ]). Of
+   * course, the default is to use mustaches (i.e. mustache.tags).
+   *
+   * A token is an array with at least 4 elements. The first element is the
+   * mustache symbol that was used inside the tag, e.g. "#" or "&". If the tag
+   * did not contain a symbol (i.e. {{myValue}}) this element is "name". For
+   * all text that appears outside a symbol this element is "text".
+   *
+   * The second element of a token is its "value". For mustache tags this is
+   * whatever else was inside the tag besides the opening symbol. For text tokens
+   * this is the text itself.
+   *
+   * The third and fourth elements of the token are the start and end indices,
+   * respectively, of the token in the original template.
+   *
+   * Tokens that are the root node of a subtree contain two more elements: 1) an
+   * array of tokens in the subtree and 2) the index in the original template at
+   * which the closing tag for that section begins.
+   */
+  function parseTemplate(template, tags) {
+    tags = tags || mustache.tags;
+    template = template || '';
+
+    if (typeof tags === 'string') {
+      tags = tags.split(spaceRe);
+    }
+
+    var tagRes = escapeTags(tags);
+    var scanner = new Scanner(template);
+
+    var sections = [];     // Stack to hold section tokens
+    var tokens = [];       // Buffer to hold the tokens
+    var spaces = [];       // Indices of whitespace tokens on the current line
+    var hasTag = false;    // Is there a {{tag}} on the current line?
+    var nonSpace = false;  // Is there a non-space char on the current line?
+
+    // Strips all whitespace tokens array for the current line
+    // if there was a {{#tag}} on it and otherwise only space.
+    function stripSpace() {
+      if (hasTag && !nonSpace) {
+        while (spaces.length) {
+          delete tokens[spaces.pop()];
+        }
+      } else {
+        spaces = [];
+      }
+
+      hasTag = false;
+      nonSpace = false;
+    }
+
+    var start, type, value, chr, token, openSection;
+    while (!scanner.eos()) {
+      start = scanner.pos;
+
+      // Match any text between tags.
+      value = scanner.scanUntil(tagRes[0]);
+      if (value) {
+        for (var i = 0, len = value.length; i < len; ++i) {
+          chr = value.charAt(i);
+
+          if (isWhitespace(chr)) {
+            spaces.push(tokens.length);
+          } else {
+            nonSpace = true;
+          }
+
+          tokens.push(['text', chr, start, start + 1]);
+          start += 1;
+
+          // Check for whitespace on the current line.
+          if (chr === '\n') {
+            stripSpace();
+          }
+        }
+      }
+
+      // Match the opening tag.
+      if (!scanner.scan(tagRes[0])) break;
+      hasTag = true;
+
+      // Get the tag type.
+      type = scanner.scan(tagRe) || 'name';
+      scanner.scan(whiteRe);
+
+      // Get the tag value.
+      if (type === '=') {
+        value = scanner.scanUntil(equalsRe);
+        scanner.scan(equalsRe);
+        scanner.scanUntil(tagRes[1]);
+      } else if (type === '{') {
+        value = scanner.scanUntil(new RegExp('\\s*' + escapeRegExp('}' + tags[1])));
+        scanner.scan(curlyRe);
+        scanner.scanUntil(tagRes[1]);
+        type = '&';
+      } else {
+        value = scanner.scanUntil(tagRes[1]);
+      }
+
+      // Match the closing tag.
+      if (!scanner.scan(tagRes[1])) {
+        throw new Error('Unclosed tag at ' + scanner.pos);
+      }
+
+      token = [ type, value, start, scanner.pos ];
+      tokens.push(token);
+
+      if (type === '#' || type === '^') {
+        sections.push(token);
+      } else if (type === '/') {
+        // Check section nesting.
+        openSection = sections.pop();
+
+        if (!openSection) {
+          throw new Error('Unopened section "' + value + '" at ' + start);
+        }
+        if (openSection[1] !== value) {
+          throw new Error('Unclosed section "' + openSection[1] + '" at ' + start);
+        }
+      } else if (type === 'name' || type === '{' || type === '&') {
+        nonSpace = true;
+      } else if (type === '=') {
+        // Set the tags for the next time around.
+        tagRes = escapeTags(tags = value.split(spaceRe));
+      }
+    }
+
+    // Make sure there are no open sections when we're done.
+    openSection = sections.pop();
+    if (openSection) {
+      throw new Error('Unclosed section "' + openSection[1] + '" at ' + scanner.pos);
+    }
+
+    return nestTokens(squashTokens(tokens));
+  }
+
+  /**
+   * Combines the values of consecutive text tokens in the given `tokens` array
+   * to a single token.
+   */
+  function squashTokens(tokens) {
+    var squashedTokens = [];
+
+    var token, lastToken;
+    for (var i = 0, len = tokens.length; i < len; ++i) {
+      token = tokens[i];
+
+      if (token) {
+        if (token[0] === 'text' && lastToken && lastToken[0] === 'text') {
+          lastToken[1] += token[1];
+          lastToken[3] = token[3];
+        } else {
+          squashedTokens.push(token);
+          lastToken = token;
+        }
+      }
+    }
+
+    return squashedTokens;
+  }
+
+  /**
+   * Forms the given array of `tokens` into a nested tree structure where
+   * tokens that represent a section have two additional items: 1) an array of
+   * all tokens that appear in that section and 2) the index in the original
+   * template that represents the end of that section.
+   */
+  function nestTokens(tokens) {
+    var nestedTokens = [];
+    var collector = nestedTokens;
+    var sections = [];
+
+    var token, section;
+    for (var i = 0, len = tokens.length; i < len; ++i) {
+      token = tokens[i];
+
+      switch (token[0]) {
+      case '#':
+      case '^':
+        collector.push(token);
+        sections.push(token);
+        collector = token[4] = [];
+        break;
+      case '/':
+        section = sections.pop();
+        section[5] = token[2];
+        collector = sections.length > 0 ? sections[sections.length - 1][4] : nestedTokens;
+        break;
+      default:
+        collector.push(token);
+      }
+    }
+
+    return nestedTokens;
+  }
+
+  /**
+   * A simple string scanner that is used by the template parser to find
+   * tokens in template strings.
+   */
+  function Scanner(string) {
+    this.string = string;
+    this.tail = string;
+    this.pos = 0;
+  }
+
+  /**
+   * Returns `true` if the tail is empty (end of string).
+   */
+  Scanner.prototype.eos = function () {
+    return this.tail === "";
+  };
+
+  /**
+   * Tries to match the given regular expression at the current position.
+   * Returns the matched text if it can match, the empty string otherwise.
+   */
+  Scanner.prototype.scan = function (re) {
+    var match = this.tail.match(re);
+
+    if (match && match.index === 0) {
+      var string = match[0];
+      this.tail = this.tail.substring(string.length);
+      this.pos += string.length;
+      return string;
+    }
+
+    return "";
+  };
+
+  /**
+   * Skips all text until the given regular expression can be matched. Returns
+   * the skipped string, which is the entire tail if no match can be made.
+   */
+  Scanner.prototype.scanUntil = function (re) {
+    var index = this.tail.search(re), match;
+
+    switch (index) {
+    case -1:
+      match = this.tail;
+      this.tail = "";
+      break;
+    case 0:
+      match = "";
+      break;
+    default:
+      match = this.tail.substring(0, index);
+      this.tail = this.tail.substring(index);
+    }
+
+    this.pos += match.length;
+
+    return match;
+  };
+
+  /**
+   * Represents a rendering context by wrapping a view object and
+   * maintaining a reference to the parent context.
+   */
+  function Context(view, parentContext) {
+    this.view = view == null ? {} : view;
+    this.cache = { '.': this.view };
+    this.parent = parentContext;
+  }
+
+  /**
+   * Creates a new context using the given view with this context
+   * as the parent.
+   */
+  Context.prototype.push = function (view) {
+    return new Context(view, this);
+  };
+
+  /**
+   * Returns the value of the given name in this context, traversing
+   * up the context hierarchy if the value is absent in this context's view.
+   */
+  Context.prototype.lookup = function (name) {
+    var value;
+    if (name in this.cache) {
+      value = this.cache[name];
+    } else {
+      var context = this;
+
+      while (context) {
+        if (name.indexOf('.') > 0) {
+          value = context.view;
+
+          var names = name.split('.'), i = 0;
+          while (value != null && i < names.length) {
+            value = value[names[i++]];
+          }
+        } else {
+          value = context.view[name];
+        }
+
+        if (value != null) break;
+
+        context = context.parent;
+      }
+
+      this.cache[name] = value;
+    }
+
+    if (isFunction(value)) {
+      value = value.call(this.view);
+    }
+
+    return value;
+  };
+
+  /**
+   * A Writer knows how to take a stream of tokens and render them to a
+   * string, given a context. It also maintains a cache of templates to
+   * avoid the need to parse the same template twice.
+   */
+  function Writer() {
+    this.cache = {};
+  }
+
+  /**
+   * Clears all cached templates in this writer.
+   */
+  Writer.prototype.clearCache = function () {
+    this.cache = {};
+  };
+
+  /**
+   * Parses and caches the given `template` and returns the array of tokens
+   * that is generated from the parse.
+   */
+  Writer.prototype.parse = function (template, tags) {
+    var cache = this.cache;
+    var tokens = cache[template];
+
+    if (tokens == null) {
+      tokens = cache[template] = parseTemplate(template, tags);
+    }
+
+    return tokens;
+  };
+
+  /**
+   * High-level method that is used to render the given `template` with
+   * the given `view`.
+   *
+   * The optional `partials` argument may be an object that contains the
+   * names and templates of partials that are used in the template. It may
+   * also be a function that is used to load partial templates on the fly
+   * that takes a single argument: the name of the partial.
+   */
+  Writer.prototype.render = function (template, view, partials) {
+    var tokens = this.parse(template);
+    var context = (view instanceof Context) ? view : new Context(view);
+    return this.renderTokens(tokens, context, partials, template);
+  };
+
+  /**
+   * Low-level method that renders the given array of `tokens` using
+   * the given `context` and `partials`.
+   *
+   * Note: The `originalTemplate` is only ever used to extract the portion
+   * of the original template that was contained in a higher-order section.
+   * If the template doesn't use higher-order sections, this argument may
+   * be omitted.
+   */
+  Writer.prototype.renderTokens = function (tokens, context, partials, originalTemplate) {
+    var buffer = '';
+
+    // This function is used to render an arbitrary template
+    // in the current context by higher-order sections.
+    var self = this;
+    function subRender(template) {
+      return self.render(template, context, partials);
+    }
+
+    var token, value;
+    for (var i = 0, len = tokens.length; i < len; ++i) {
+      token = tokens[i];
+
+      switch (token[0]) {
+      case '#':
+        value = context.lookup(token[1]);
+        if (!value) continue;
+
+        if (isArray(value)) {
+          for (var j = 0, jlen = value.length; j < jlen; ++j) {
+            buffer += this.renderTokens(token[4], context.push(value[j]), partials, originalTemplate);
+          }
+        } else if (typeof value === 'object' || typeof value === 'string') {
+          buffer += this.renderTokens(token[4], context.push(value), partials, originalTemplate);
+        } else if (isFunction(value)) {
+          if (typeof originalTemplate !== 'string') {
+            throw new Error('Cannot use higher-order sections without the original template');
+          }
+
+          // Extract the portion of the original template that the section contains.
+          value = value.call(context.view, originalTemplate.slice(token[3], token[5]), subRender);
+
+          if (value != null) buffer += value;
+        } else {
+          buffer += this.renderTokens(token[4], context, partials, originalTemplate);
+        }
+
+        break;
+      case '^':
+        value = context.lookup(token[1]);
+
+        // Use JavaScript's definition of falsy. Include empty arrays.
+        // See https://github.com/janl/mustache.js/issues/186
+        if (!value || (isArray(value) && value.length === 0)) {
+          buffer += this.renderTokens(token[4], context, partials, originalTemplate);
+        }
+
+        break;
+      case '>':
+        if (!partials) continue;
+        value = isFunction(partials) ? partials(token[1]) : partials[token[1]];
+        if (value != null) buffer += this.renderTokens(this.parse(value), context, partials, value);
+        break;
+      case '&':
+        value = context.lookup(token[1]);
+        if (value != null) buffer += value;
+        break;
+      case 'name':
+        value = context.lookup(token[1]);
+        if (value != null) buffer += mustache.escape(value);
+        break;
+      case 'text':
+        buffer += token[1];
+        break;
+      }
+    }
+
+    return buffer;
+  };
+
+  mustache.name = "mustache.js";
+  mustache.version = "0.8.1";
+  mustache.tags = [ "{{", "}}" ];
+
+  // All high-level mustache.* functions use this writer.
+  var defaultWriter = new Writer();
+
+  /**
+   * Clears all cached templates in the default writer.
+   */
+  mustache.clearCache = function () {
+    return defaultWriter.clearCache();
+  };
+
+  /**
+   * Parses and caches the given template in the default writer and returns the
+   * array of tokens it contains. Doing this ahead of time avoids the need to
+   * parse templates on the fly as they are rendered.
+   */
+  mustache.parse = function (template, tags) {
+    return defaultWriter.parse(template, tags);
+  };
+
+  /**
+   * Renders the `template` with the given `view` and `partials` using the
+   * default writer.
+   */
+  mustache.render = function (template, view, partials) {
+    return defaultWriter.render(template, view, partials);
+  };
+
+  // This is here for backwards compatibility with 0.4.x.
+  mustache.to_html = function (template, view, partials, send) {
+    var result = mustache.render(template, view, partials);
+
+    if (isFunction(send)) {
+      send(result);
+    } else {
+      return result;
+    }
+  };
+
+  // Export the escaping function so that the user may override it.
+  // See https://github.com/janl/mustache.js/issues/244
+  mustache.escape = escapeHtml;
+
+  // Export these mainly for testing, but also for advanced usage.
+  mustache.Scanner = Scanner;
+  mustache.Context = Context;
+  mustache.Writer = Writer;
+
+}));
+
+;(function(factory) {
+    if (typeof define === 'function' && define.amd) {
+        define(factory);
+    } else {
+        window.purl = factory();
+    }
+})(function() {
+
+    var tag2attr = {
+            a       : 'href',
+            img     : 'src',
+            form    : 'action',
+            base    : 'href',
+            script  : 'src',
+            iframe  : 'src',
+            link    : 'href',
+            embed   : 'src',
+            object  : 'data'
+        },
+
+        key = ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'fragment'], // keys available to query
+
+        aliases = { 'anchor' : 'fragment' }, // aliases for backwards compatability
+
+        parser = {
+            strict : /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,  //less intuitive, more accurate to the specs
+            loose :  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/ // more intuitive, fails on relative paths and deviates from specs
+        },
+
+        isint = /^[0-9]+$/;
+
+    function parseUri( url, strictMode ) {
+        var str = decodeURI( url ),
+        res   = parser[ strictMode || false ? 'strict' : 'loose' ].exec( str ),
+        uri = { attr : {}, param : {}, seg : {} },
+        i   = 14;
+
+        while ( i-- ) {
+            uri.attr[ key[i] ] = res[i] || '';
+        }
+
+        // build query and fragment parameters
+        uri.param['query'] = parseString(uri.attr['query']);
+        uri.param['fragment'] = parseString(uri.attr['fragment']);
+
+        // split path and fragement into segments
+        uri.seg['path'] = uri.attr.path.replace(/^\/+|\/+$/g,'').split('/');
+        uri.seg['fragment'] = uri.attr.fragment.replace(/^\/+|\/+$/g,'').split('/');
+
+        // compile a 'base' domain attribute
+        uri.attr['base'] = uri.attr.host ? (uri.attr.protocol ?  uri.attr.protocol+'://'+uri.attr.host : uri.attr.host) + (uri.attr.port ? ':'+uri.attr.port : '') : '';
+
+        return uri;
+    }
+
+    function getAttrName( elm ) {
+        var tn = elm.tagName;
+        if ( typeof tn !== 'undefined' ) return tag2attr[tn.toLowerCase()];
+        return tn;
+    }
+
+    function promote(parent, key) {
+        if (parent[key].length === 0) return parent[key] = {};
+        var t = {};
+        for (var i in parent[key]) t[i] = parent[key][i];
+        parent[key] = t;
+        return t;
+    }
+
+    function parse(parts, parent, key, val) {
+        var part = parts.shift();
+        if (!part) {
+            if (isArray(parent[key])) {
+                parent[key].push(val);
+            } else if ('object' == typeof parent[key]) {
+                parent[key] = val;
+            } else if ('undefined' == typeof parent[key]) {
+                parent[key] = val;
+            } else {
+                parent[key] = [parent[key], val];
+            }
+        } else {
+            var obj = parent[key] = parent[key] || [];
+            if (']' == part) {
+                if (isArray(obj)) {
+                    if ('' !== val) obj.push(val);
+                } else if ('object' == typeof obj) {
+                    obj[keys(obj).length] = val;
+                } else {
+                    obj = parent[key] = [parent[key], val];
+                }
+            } else if (~part.indexOf(']')) {
+                part = part.substr(0, part.length - 1);
+                if (!isint.test(part) && isArray(obj)) obj = promote(parent, key);
+                parse(parts, obj, part, val);
+                // key
+            } else {
+                if (!isint.test(part) && isArray(obj)) obj = promote(parent, key);
+                parse(parts, obj, part, val);
+            }
+        }
+    }
+
+    function merge(parent, key, val) {
+        if (~key.indexOf(']')) {
+            var parts = key.split('[');
+            parse(parts, parent, 'base', val);
+        } else {
+            if (!isint.test(key) && isArray(parent.base)) {
+                var t = {};
+                for (var k in parent.base) t[k] = parent.base[k];
+                parent.base = t;
+            }
+            if (key !== '') {
+                set(parent.base, key, val);
+            }
+        }
+        return parent;
+    }
+
+    function parseString(str) {
+        return reduce(String(str).split(/&|;/), function(ret, pair) {
+            try {
+                pair = decodeURIComponent(pair.replace(/\+/g, ' '));
+            } catch(e) {
+                // ignore
+            }
+            var eql = pair.indexOf('='),
+                brace = lastBraceInKey(pair),
+                key = pair.substr(0, brace || eql),
+                val = pair.substr(brace || eql, pair.length);
+
+            val = val.substr(val.indexOf('=') + 1, val.length);
+
+            if (key === '') {
+                key = pair;
+                val = '';
+            }
+
+            return merge(ret, key, val);
+        }, { base: {} }).base;
+    }
+
+    function set(obj, key, val) {
+        var v = obj[key];
+        if (typeof v === 'undefined') {
+            obj[key] = val;
+        } else if (isArray(v)) {
+            v.push(val);
+        } else {
+            obj[key] = [v, val];
+        }
+    }
+
+    function lastBraceInKey(str) {
+        var len = str.length,
+            brace,
+            c;
+        for (var i = 0; i < len; ++i) {
+            c = str[i];
+            if (']' == c) brace = false;
+            if ('[' == c) brace = true;
+            if ('=' == c && !brace) return i;
+        }
+    }
+
+    function reduce(obj, accumulator){
+        var i = 0,
+            l = obj.length >> 0,
+            curr = arguments[2];
+        while (i < l) {
+            if (i in obj) curr = accumulator.call(undefined, curr, obj[i], i, obj);
+            ++i;
+        }
+        return curr;
+    }
+
+    function isArray(vArg) {
+        return Object.prototype.toString.call(vArg) === "[object Array]";
+    }
+
+    function keys(obj) {
+        var key_array = [];
+        for ( var prop in obj ) {
+            if ( obj.hasOwnProperty(prop) ) key_array.push(prop);
+        }
+        return key_array;
+    }
+
+    function purl( url, strictMode ) {
+        if ( arguments.length === 1 && url === true ) {
+            strictMode = true;
+            url = undefined;
+        }
+        strictMode = strictMode || false;
+        url = url || window.location.toString();
+
+        return {
+
+            data : parseUri(url, strictMode),
+
+            // get various attributes from the URI
+            attr : function( attr ) {
+                attr = aliases[attr] || attr;
+                return typeof attr !== 'undefined' ? this.data.attr[attr] : this.data.attr;
+            },
+
+            // return query string parameters
+            param : function( param ) {
+                return typeof param !== 'undefined' ? this.data.param.query[param] : this.data.param.query;
+            },
+
+            // return fragment parameters
+            fparam : function( param ) {
+                return typeof param !== 'undefined' ? this.data.param.fragment[param] : this.data.param.fragment;
+            },
+
+            // return path segments
+            segment : function( seg ) {
+                if ( typeof seg === 'undefined' ) {
+                    return this.data.seg.path;
+                } else {
+                    seg = seg < 0 ? this.data.seg.path.length + seg : seg - 1; // negative segments count from the end
+                    return this.data.seg.path[seg];
+                }
+            },
+
+            // return fragment segments
+            fsegment : function( seg ) {
+                if ( typeof seg === 'undefined' ) {
+                    return this.data.seg.fragment;
+                } else {
+                    seg = seg < 0 ? this.data.seg.fragment.length + seg : seg - 1; // negative segments count from the end
+                    return this.data.seg.fragment[seg];
+                }
+            }
+
+        };
+
+    }
+    
+    purl.jQuery = function($){
+        if ($ != null) {
+            $.fn.url = function( strictMode ) {
+                var url = '';
+                if ( this.length ) {
+                    url = $(this).attr( getAttrName(this[0]) ) || '';
+                }
+                return purl( url, strictMode );
+            };
+
+            $.url = purl;
+        }
+    };
+
+    purl.jQuery(window.jQuery);
+
+    return purl;
+
+});
+
 (function (global, undefined) {
 	"use strict";
 
@@ -13454,267 +15244,6 @@ $.magnificPopup.registerModule(RETINA_NS, {
 	}
 
 }(this));
-
-;(function(factory) {
-    if (typeof define === 'function' && define.amd) {
-        define(factory);
-    } else {
-        window.purl = factory();
-    }
-})(function() {
-
-    var tag2attr = {
-            a       : 'href',
-            img     : 'src',
-            form    : 'action',
-            base    : 'href',
-            script  : 'src',
-            iframe  : 'src',
-            link    : 'href',
-            embed   : 'src',
-            object  : 'data'
-        },
-
-        key = ['source', 'protocol', 'authority', 'userInfo', 'user', 'password', 'host', 'port', 'relative', 'path', 'directory', 'file', 'query', 'fragment'], // keys available to query
-
-        aliases = { 'anchor' : 'fragment' }, // aliases for backwards compatability
-
-        parser = {
-            strict : /^(?:([^:\/?#]+):)?(?:\/\/((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?))?((((?:[^?#\/]*\/)*)([^?#]*))(?:\?([^#]*))?(?:#(.*))?)/,  //less intuitive, more accurate to the specs
-            loose :  /^(?:(?![^:@]+:[^:@\/]*@)([^:\/?#.]+):)?(?:\/\/)?((?:(([^:@]*):?([^:@]*))?@)?([^:\/?#]*)(?::(\d*))?)(((\/(?:[^?#](?![^?#\/]*\.[^?#\/.]+(?:[?#]|$)))*\/?)?([^?#\/]*))(?:\?([^#]*))?(?:#(.*))?)/ // more intuitive, fails on relative paths and deviates from specs
-        },
-
-        isint = /^[0-9]+$/;
-
-    function parseUri( url, strictMode ) {
-        var str = decodeURI( url ),
-        res   = parser[ strictMode || false ? 'strict' : 'loose' ].exec( str ),
-        uri = { attr : {}, param : {}, seg : {} },
-        i   = 14;
-
-        while ( i-- ) {
-            uri.attr[ key[i] ] = res[i] || '';
-        }
-
-        // build query and fragment parameters
-        uri.param['query'] = parseString(uri.attr['query']);
-        uri.param['fragment'] = parseString(uri.attr['fragment']);
-
-        // split path and fragement into segments
-        uri.seg['path'] = uri.attr.path.replace(/^\/+|\/+$/g,'').split('/');
-        uri.seg['fragment'] = uri.attr.fragment.replace(/^\/+|\/+$/g,'').split('/');
-
-        // compile a 'base' domain attribute
-        uri.attr['base'] = uri.attr.host ? (uri.attr.protocol ?  uri.attr.protocol+'://'+uri.attr.host : uri.attr.host) + (uri.attr.port ? ':'+uri.attr.port : '') : '';
-
-        return uri;
-    }
-
-    function getAttrName( elm ) {
-        var tn = elm.tagName;
-        if ( typeof tn !== 'undefined' ) return tag2attr[tn.toLowerCase()];
-        return tn;
-    }
-
-    function promote(parent, key) {
-        if (parent[key].length === 0) return parent[key] = {};
-        var t = {};
-        for (var i in parent[key]) t[i] = parent[key][i];
-        parent[key] = t;
-        return t;
-    }
-
-    function parse(parts, parent, key, val) {
-        var part = parts.shift();
-        if (!part) {
-            if (isArray(parent[key])) {
-                parent[key].push(val);
-            } else if ('object' == typeof parent[key]) {
-                parent[key] = val;
-            } else if ('undefined' == typeof parent[key]) {
-                parent[key] = val;
-            } else {
-                parent[key] = [parent[key], val];
-            }
-        } else {
-            var obj = parent[key] = parent[key] || [];
-            if (']' == part) {
-                if (isArray(obj)) {
-                    if ('' !== val) obj.push(val);
-                } else if ('object' == typeof obj) {
-                    obj[keys(obj).length] = val;
-                } else {
-                    obj = parent[key] = [parent[key], val];
-                }
-            } else if (~part.indexOf(']')) {
-                part = part.substr(0, part.length - 1);
-                if (!isint.test(part) && isArray(obj)) obj = promote(parent, key);
-                parse(parts, obj, part, val);
-                // key
-            } else {
-                if (!isint.test(part) && isArray(obj)) obj = promote(parent, key);
-                parse(parts, obj, part, val);
-            }
-        }
-    }
-
-    function merge(parent, key, val) {
-        if (~key.indexOf(']')) {
-            var parts = key.split('[');
-            parse(parts, parent, 'base', val);
-        } else {
-            if (!isint.test(key) && isArray(parent.base)) {
-                var t = {};
-                for (var k in parent.base) t[k] = parent.base[k];
-                parent.base = t;
-            }
-            if (key !== '') {
-                set(parent.base, key, val);
-            }
-        }
-        return parent;
-    }
-
-    function parseString(str) {
-        return reduce(String(str).split(/&|;/), function(ret, pair) {
-            try {
-                pair = decodeURIComponent(pair.replace(/\+/g, ' '));
-            } catch(e) {
-                // ignore
-            }
-            var eql = pair.indexOf('='),
-                brace = lastBraceInKey(pair),
-                key = pair.substr(0, brace || eql),
-                val = pair.substr(brace || eql, pair.length);
-
-            val = val.substr(val.indexOf('=') + 1, val.length);
-
-            if (key === '') {
-                key = pair;
-                val = '';
-            }
-
-            return merge(ret, key, val);
-        }, { base: {} }).base;
-    }
-
-    function set(obj, key, val) {
-        var v = obj[key];
-        if (typeof v === 'undefined') {
-            obj[key] = val;
-        } else if (isArray(v)) {
-            v.push(val);
-        } else {
-            obj[key] = [v, val];
-        }
-    }
-
-    function lastBraceInKey(str) {
-        var len = str.length,
-            brace,
-            c;
-        for (var i = 0; i < len; ++i) {
-            c = str[i];
-            if (']' == c) brace = false;
-            if ('[' == c) brace = true;
-            if ('=' == c && !brace) return i;
-        }
-    }
-
-    function reduce(obj, accumulator){
-        var i = 0,
-            l = obj.length >> 0,
-            curr = arguments[2];
-        while (i < l) {
-            if (i in obj) curr = accumulator.call(undefined, curr, obj[i], i, obj);
-            ++i;
-        }
-        return curr;
-    }
-
-    function isArray(vArg) {
-        return Object.prototype.toString.call(vArg) === "[object Array]";
-    }
-
-    function keys(obj) {
-        var key_array = [];
-        for ( var prop in obj ) {
-            if ( obj.hasOwnProperty(prop) ) key_array.push(prop);
-        }
-        return key_array;
-    }
-
-    function purl( url, strictMode ) {
-        if ( arguments.length === 1 && url === true ) {
-            strictMode = true;
-            url = undefined;
-        }
-        strictMode = strictMode || false;
-        url = url || window.location.toString();
-
-        return {
-
-            data : parseUri(url, strictMode),
-
-            // get various attributes from the URI
-            attr : function( attr ) {
-                attr = aliases[attr] || attr;
-                return typeof attr !== 'undefined' ? this.data.attr[attr] : this.data.attr;
-            },
-
-            // return query string parameters
-            param : function( param ) {
-                return typeof param !== 'undefined' ? this.data.param.query[param] : this.data.param.query;
-            },
-
-            // return fragment parameters
-            fparam : function( param ) {
-                return typeof param !== 'undefined' ? this.data.param.fragment[param] : this.data.param.fragment;
-            },
-
-            // return path segments
-            segment : function( seg ) {
-                if ( typeof seg === 'undefined' ) {
-                    return this.data.seg.path;
-                } else {
-                    seg = seg < 0 ? this.data.seg.path.length + seg : seg - 1; // negative segments count from the end
-                    return this.data.seg.path[seg];
-                }
-            },
-
-            // return fragment segments
-            fsegment : function( seg ) {
-                if ( typeof seg === 'undefined' ) {
-                    return this.data.seg.fragment;
-                } else {
-                    seg = seg < 0 ? this.data.seg.fragment.length + seg : seg - 1; // negative segments count from the end
-                    return this.data.seg.fragment[seg];
-                }
-            }
-
-        };
-
-    }
-    
-    purl.jQuery = function($){
-        if ($ != null) {
-            $.fn.url = function( strictMode ) {
-                var url = '';
-                if ( this.length ) {
-                    url = $(this).attr( getAttrName(this[0]) ) || '';
-                }
-                return purl( url, strictMode );
-            };
-
-            $.url = purl;
-        }
-    };
-
-    purl.jQuery(window.jQuery);
-
-    return purl;
-
-});
 
 /*!
  * Bootstrap v3.1.1 (http://getbootstrap.com)
@@ -15669,49 +17198,269 @@ if (typeof jQuery === 'undefined') { throw new Error('Bootstrap\'s JavaScript re
 }(jQuery);
 
 //
+// bt 搜索提供者
+// http://www.bttiantang.com
+//
+define('js/bt-tiantang', function(require, exports, module) {
+    "use strict";
+
+    var $ = require('jquery'),
+        m = require('mustache'),
+        purl = require('purl'),
+        $iframe = null,
+        timeout = 30 * 1000,
+        SUBJECT_CACHE = {},
+        ITEMS_CACHE = {};
+
+    function download (url) {
+        var $form = null,
+            params = purl(url).param(),
+            dfd = new $.Deferred();
+
+        if (params && params.id && params.uhash) {
+            $form = $('<form method="POST" action="http://www.bttiantang.com/download.php">' +
+              '<input type="hidden" name="action" value="download"/>' +
+              '<input type="hidden" name="id" value="' + params.id + '"/> '+
+              '<input type="hidden" name="uhash" value="' + params.uhash + '"/>' +
+              '</form>');
+            if (!$iframe) {
+                $iframe = $('<iframe />').appendTo('body');
+            }
+            $iframe.html($form);
+            $form.submit();
+        } else {
+            dfd.reject();
+        }
+
+        return dfd.promise();
+    }
+
+    function _filterFiles (file) {
+        var $file = $(file),
+            $size = $file.find('small'),
+            title = '',
+            size = '';
+
+        $size.remove();
+
+        title = $.trim($file.text());
+        title = title.replace(/\.(\w+)$/i, '.<strong>$1</strong>');
+
+        size = $.trim($size.text());
+        size = size ? '<strong>' + size + '</strong>' : '';
+
+        title = size ? (title + ' ' + size) : title;
+
+        return {title: title};
+    }
+
+    var tmpl = '{{#items}}' +
+               '<dl class="movie-improve-bt-dl">' +
+                  '<dt class="movie-improve-bt-title">' +
+                      '<a title="点击下载种子" class="movie-improve-bt-download" href="{{href}}">{{title}}</a>' +
+                  '</dt>' +
+                  '{{#files}}' +
+                  '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
+                  '{{/files}}' +
+               '</dl>' +
+               '{{/items}}';
+
+    function renderItems (items) {
+        var content = m.render(tmpl, {items: items}),
+            $content = $(content);
+
+        $content
+        .on('mouseenter', '.movie-improve-bt-download', function (evt) {
+            $(this).tipsy({gravity: 'w', offset: 3}).tipsy('show');
+        })
+        .on('click', '.movie-improve-bt-download', function (evt) {
+            evt.preventDefault();
+
+            var $btn = $(this);
+
+            download($btn.attr('href'))
+            .fail(function () {
+                $btn.attr('title', '没有找到下载地址。');
+            });
+
+        });
+
+        return $content;
+    }
+
+    function searchSubject (imdb, year) {
+        var dfd = new $.Deferred(),
+            subjectUrl = '';
+
+        if (SUBJECT_CACHE.hasOwnProperty(imdb)) {
+            subjectUrl = SUBJECT_CACHE[imdb];
+            if (subjectUrl) {
+                dfd.resolve(subjectUrl);
+            } else {
+                dfd.reject();
+            }
+        } else {
+            $.ajax({
+                url: 'http://www.bttiantang.com/s.php?q=#imdb#'.replace('#imdb#', imdb),
+                type: 'GET',
+                timeout: timeout,
+                xhrFields: {
+                    withCredentials: true
+                }
+            })
+            .done(function (html) {
+                html = html.replace(/src=/ig, 'data-src=');
+
+                var subjectUrl = '',
+                    $html = $($.parseHTML(html)),
+                    $items = $html.find('.ml .item'),
+                    items = [];
+
+                items = $.map($items, function (item) {
+                    var $item = $(item),
+                        $title = $item.find('.title'),
+                        $link = $title.find('.tt a'),
+                        year = parseInt($.trim($link.text()).replace(/.*\.(\d+)$/, '$1'), 10);
+
+                    return {
+                        href: $link.attr('href'),
+                        year: year
+                    };
+                });
+
+                // 确定最合适的那个链接
+                if (items.length > 0) {
+                    subjectUrl = items[0].href;
+                    // 有两个以上的链接，根据年份来确定，虽然可能并不准确
+                    // 但是对于大部分同名或者包含子名的电影来说还是可以匹配的
+                    if (items.length > 1) {
+                        $.each(items, function (index, item) {
+                            if (item.year === year) {
+                                subjectUrl = item.href;
+                            }
+                        });
+                    }
+                }
+
+                if (subjectUrl) {
+                    subjectUrl = 'http://www.bttiantang.com' + subjectUrl;
+                    SUBJECT_CACHE[imdb] = subjectUrl;
+                    dfd.resolve(subjectUrl);
+                } else {
+                    SUBJECT_CACHE[imdb] = subjectUrl;
+                    dfd.reject();
+                }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+        }
+
+        return dfd.promise();
+    }
+
+    function searchItems (subjectUrl) {
+        var dfd = new $.Deferred(),
+            items = null;
+
+        if (ITEMS_CACHE.hasOwnProperty(subjectUrl)) {
+            items = ITEMS_CACHE[subjectUrl];
+            if (items && items.length) {
+                dfd.resolve(items);
+            } else {
+                dfd.reject();
+            }
+        } else {
+            $.ajax({
+                url: subjectUrl,
+                type: 'GET',
+                timeout: timeout,
+                xhrFields: {
+                    withCredentials: true
+                }
+            })
+            .done(function (html) {
+                html = html.replace(/src=/ig, 'data-src=');
+                var $html = $($.parseHTML(html)),
+                    $items = $html.find('.tinfo'),
+                    items = [];
+
+                items = $.map($items, function (item) {
+                    var $item = $(item),
+                        $title = $item.children('a'),
+                        $files = $item.find('.video');
+
+                    return {
+                        href: 'http://www.bttiantang.com' + $title.attr('href'),
+                        title: $.trim($title.text()),
+                        files: $.map($files, _filterFiles)
+                    };
+                });
+
+                ITEMS_CACHE[subjectUrl] = items;
+                if (items.length) {
+                    dfd.resolve(items);
+                } else {
+                    dfd.reject();
+                }
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+        }
+
+        return dfd.promise();
+    }
+
+    function search (subject) {
+        var dfd = new $.Deferred(),
+            imdb = '';
+
+        // 可直接搜关键字
+        if (subject.imdb) {
+            imdb = '' + subject.imdb;
+        } else {
+            imdb = encodeURI(subject.title2);
+        }
+
+        if (!imdb) {
+            dfd.reject();
+        } else {
+            dfd.notify('正在加载搜索结果，服务器网络慢的话需要等待几秒...');
+
+            searchSubject(imdb, subject.year)
+            .done(function (subjectUrl) {
+                dfd.notify('马上就好，正在加载BT地址...');
+
+                searchItems(subjectUrl)
+                .done(function (items) {
+                    dfd.resolve(renderItems(items), items.length);
+                })
+                .fail(function () {
+                    dfd.reject();
+                });
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+        }
+
+        return dfd.promise();
+    }
+
+    module.exports = {
+        name: 'BT天堂',
+        search: search
+    };
+});
+
+//
 // detect download or play
 //
 define('private/adapter', function (require, exports, module) {
     "use strict";
 
-    var $ = require('jquery'),
-        yun = require('private/yun'),
-        alertify = require('alertify');
-
-    function openYunbo (href, usePrivate) {
-        alertify.log('正在加载云播地址...');
-        yun.requestHash(href)
-        .done(function (hash) {
-            var url = '';
-            if (usePrivate) {
-                url = 'http://tantion.com/private/play.html?infohash=' + hash;
-            } else {
-                url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=bt%3A%2F%2F' + hash + '&playwindow=player';
-            }
-            chrome.runtime.sendMessage({action: 'openUrl', data: {url: url}});
-            alertify.success('准备云播');
-        })
-        .fail(function (msg) {
-            alertify.log(msg || '云播失败，未知错误');
-        });
-    }
-
     var adapter = {
-        init: function () {
-            $(document)
-            .on('click', 'a.private-play-download-link', function (evt) {
-                var href = $(this).prop('href');
-
-                if (adapter.isYunAction(evt)) {
-                    evt.preventDefault();
-                    openYunbo(href);
-                }
-                else if (adapter.isPrivateAction(evt)) {
-                    evt.preventDefault();
-                    openYunbo(href, true);
-                }
-            });
-        },
         isYunAction: function (evt) {
             if (evt && evt.shiftKey && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
                 return true;
@@ -16036,7 +17785,7 @@ define('private/main', function (require, exports, module) {
         require('private/handle-detail'),
         require('private/lazy-load'),
         require('private/bt'),
-        require('private/adapter'),
+        require('private/yunbo'),
         require('private/player')
     ];
 
@@ -16048,7 +17797,6 @@ define('private/main', function (require, exports, module) {
         }
     });
 });
-
 
 //
 // player
@@ -16179,7 +17927,7 @@ define('private/yun', function (require, exports, module) {
             })
             .done(function (data) {
                 if (data.resp.error_msg) {
-                    dfd.reject('云播需要<a href="http://vod.xunlei.com" target="_blank">登录迅雷会员</a>');
+                    dfd.reject('云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>');
                 } else {
                     logined = true;
                     dfd.resolve();
@@ -16234,7 +17982,7 @@ define('private/yun', function (require, exports, module) {
             loader = null;
 
         if (hashCache.hasOwnProperty(url)) {
-            dfd.resovle(hashCache[url]);
+            dfd.resolve(hashCache[url]);
         } else {
             hasLogin()
             .done(function () {
@@ -16388,6 +18136,64 @@ define('private/yun', function (require, exports, module) {
 });
 
 //
+// yun bo detect
+//
+define('private/yunbo', function (require, exports, module) {
+    "use strict";
+
+    var $ = require('jquery'),
+        yun = require('private/yun'),
+        adapter = require('private/adapter'),
+        alertify = require('alertify');
+
+    function closeLogs () {
+        $('article.alertify-log-show').click();
+    }
+
+    function openYunbo (href, usePrivate) {
+        closeLogs();
+        alertify.log('正在加载云播地址...');
+        yun.requestHash(href)
+        .done(function (hash) {
+            var url = '';
+            if (usePrivate) {
+                url = 'http://tantion.com/private/play.html?infohash=' + hash;
+            } else {
+                url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=bt%3A%2F%2F' + hash + '&playwindow=player';
+            }
+            chrome.runtime.sendMessage({action: 'openurl', data: {url: url}});
+            closeLogs();
+            alertify.success('准备云播');
+        })
+        .fail(function (msg) {
+            closeLogs();
+            alertify.error(msg || '云播失败，未知错误');
+        });
+    }
+
+
+    function init () {
+        $(document)
+        .on('click', 'a.private-play-download-link', function (evt) {
+            var href = $(this).prop('href');
+
+            if (adapter.isYunAction(evt)) {
+                evt.preventDefault();
+                openYunbo(href);
+            }
+            else if (adapter.isPrivateAction(evt)) {
+                evt.preventDefault();
+                openYunbo(href, true);
+            }
+        });
+    }
+
+    module.exports = {
+        init: init
+    };
+});
+
+//
 // seajs  jquery
 //
 define('jquery', function (require, exports, module) {
@@ -16397,12 +18203,31 @@ define('jquery', function (require, exports, module) {
 });
 
 //
+// Mustache
+//
+define('mustache', function (require, exports, module) {
+    "use strict";
+
+    module.exports = window.Mustache;
+});
+
+//
 // purl
 //
-define('purl', [], function (require, exports, module) {
+define('purl', function (require, exports, module) {
     "use strict";
 
     module.exports = window.purl;
 });
+
+//
+// async
+//
+define('async', function (require, exports, module) {
+    "use strict";
+
+    module.exports = window.async;
+});
+
 
 seajs.use('private/main');

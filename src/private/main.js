@@ -8,7 +8,7 @@ define('private/main', function (require, exports, module) {
         require('private/handle-detail'),
         require('private/lazy-load'),
         require('private/bt'),
-        require('private/adapter'),
+        require('private/yunbo'),
         require('private/player')
     ];
 
@@ -20,4 +20,3 @@ define('private/main', function (require, exports, module) {
         }
     });
 });
-

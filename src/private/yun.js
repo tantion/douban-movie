@@ -22,7 +22,7 @@ define('private/yun', function (require, exports, module) {
             })
             .done(function (data) {
                 if (data.resp.error_msg) {
-                    dfd.reject('云播需要<a href="http://vod.xunlei.com" target="_blank">登录迅雷会员</a>');
+                    dfd.reject('云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>');
                 } else {
                     logined = true;
                     dfd.resolve();
@@ -77,7 +77,7 @@ define('private/yun', function (require, exports, module) {
             loader = null;
 
         if (hashCache.hasOwnProperty(url)) {
-            dfd.resovle(hashCache[url]);
+            dfd.resolve(hashCache[url]);
         } else {
             hasLogin()
             .done(function () {
