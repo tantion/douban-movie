@@ -4,7 +4,8 @@ A chrome extension for Douban Movie
 
 ## Change Log
 
-- v2.0.0 - April 11 2014
+- v2.0.0 - April 13 2014
+    - 支持一键云播
     - Added web player
 
 - v1.3.0 - April 5 2014
