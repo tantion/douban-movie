@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.0.0 - 2014-04-12
+/*! douban-movie-improve - v2.0.0 - 2014-04-13
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -16163,28 +16163,34 @@ define('private/yun', function (require, exports, module) {
 
     var $ = require('jquery'),
         hashCache = {},
+        logined = false,
         tt = require('js/bt-tiantang'),
         bt = require('private/bt');
 
     function hasLogin () {
         var dfd = $.Deferred();
 
-        $.ajax({
-            url: 'http://i.vod.xunlei.com/req_history_play_list/req_num/30/req_offset/0?type=kongjian&order=create&folder_id=0',
-            type: 'get',
-            dataType: 'json',
-            timeout: 30 * 1000
-        })
-        .done(function (data) {
-            if (data.resp.error_msg) {
-                dfd.reject();
-            } else {
-                dfd.resolve();
-            }
-        })
-        .fail(function () {
-            dfd.reject();
-        });
+        if (!logined) {
+            $.ajax({
+                url: 'http://i.vod.xunlei.com/req_history_play_list/req_num/30/req_offset/0?type=kongjian&order=create&folder_id=0',
+                type: 'get',
+                dataType: 'json',
+                timeout: 30 * 1000
+            })
+            .done(function (data) {
+                if (data.resp.error_msg) {
+                    dfd.reject('云播需要<a href="http://vod.xunlei.com" target="_blank">登录迅雷会员</a>');
+                } else {
+                    logined = true;
+                    dfd.resolve();
+                }
+            })
+            .fail(function () {
+                dfd.reject('网络错误');
+            });
+        } else {
+            dfd.resolve();
+        }
 
         return dfd.promise();
     }
@@ -16205,11 +16211,11 @@ define('private/yun', function (require, exports, module) {
             if (data.infohash) {
                 dfd.resolve(data.infohash);
             } else {
-                dfd.reject();
+                dfd.reject('上传bt失败，或者bt无效');
             }
         };
         xhr.onerror = function () {
-            dfd.reject();
+            dfd.reject('网络错误');
         };
 
         xhr.send(formData);
@@ -16250,8 +16256,8 @@ define('private/yun', function (require, exports, module) {
                             dfd.reject(msg);
                         });
                     })
-                    .fail(function () {
-                        dfd.reject('下载bt失败');
+                    .fail(function (msg) {
+                        dfd.reject(msg);
                     });
                 } else {
                     checkUrl(url)
@@ -16286,11 +16292,11 @@ define('private/yun', function (require, exports, module) {
             if (list && list.length) {
                 dfd.resolve(list);
             } else {
-                dfd.reject();
+                dfd.reject('没有找到播放列表');
             }
         })
         .fail(function () {
-            dfd.reject();
+            dfd.reject('网络错误');
         });
 
         return dfd.promise();
@@ -16318,11 +16324,11 @@ define('private/yun', function (require, exports, module) {
                 var url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
                 dfd.resolve(url);
             } else {
-                dfd.reject();
+                dfd.reject('需要先登录迅雷');
             }
         })
         .fail(function () {
-            dfd.reject();
+            dfd.reject('网络错误');
         });
 
         return dfd.promise();
