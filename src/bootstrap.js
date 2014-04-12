@@ -15602,10 +15602,6 @@ define('private/adapter', function (require, exports, module) {
 define('private/bt', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/\/p2p\/\w+\/[\w\-]+\.html/i)) {
-        return;
-    }
-
     var $ = require('jquery'),
         adapter = require('private/adapter'),
         alertify = require('alertify'),
@@ -15695,6 +15691,10 @@ define('private/bt', function (require, exports, module) {
     }
 
     function init () {
+        if (!location.href.match(/\/p2p\/\w+\/[\w\-]+\.html/i)) {
+            return;
+        }
+
         $(document)
         .on('mouseenter', 'a[href]', function () {
             var $link = $(this),
@@ -16288,7 +16288,7 @@ define('private/yun', function (require, exports, module) {
                         dfd.reject('网络错误');
                     });
                 } else {
-                    dfd.reject('你需要登录迅雷会员');
+                    dfd.reject('云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>');
                 }
             })
             .fail(function () {
@@ -17501,6 +17501,7 @@ define('js/bt-tiantang', function(require, exports, module) {
         m = require('mustache'),
         purl = require('purl'),
         adapter = require('private/adapter'),
+        alertify = require('alertify'),
         $iframe = null,
         timeout = 30 * 1000,
         SUBJECT_CACHE = {},
@@ -17616,9 +17617,10 @@ define('js/bt-tiantang', function(require, exports, module) {
 
             var $btn = $(this);
 
+            alertify.log('正在下载中... 同时 `Shift+单击` 可云播');
             download($btn.attr('href'))
             .fail(function () {
-                $btn.attr('title', '没有找到下载地址。');
+                alertify.error('网络错误，下载失败');
             });
 
         });

@@ -9,6 +9,7 @@ define('js/bt-tiantang', function(require, exports, module) {
         m = require('mustache'),
         purl = require('purl'),
         adapter = require('private/adapter'),
+        alertify = require('alertify'),
         $iframe = null,
         timeout = 30 * 1000,
         SUBJECT_CACHE = {},
@@ -124,9 +125,10 @@ define('js/bt-tiantang', function(require, exports, module) {
 
             var $btn = $(this);
 
+            alertify.log('正在下载中... 同时 `Shift+单击` 可云播');
             download($btn.attr('href'))
             .fail(function () {
-                $btn.attr('title', '没有找到下载地址。');
+                alertify.error('网络错误，下载失败');
             });
 
         });

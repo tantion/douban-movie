@@ -4,10 +4,6 @@
 define('private/bt', function (require, exports, module) {
     "use strict";
 
-    if (!location.href.match(/\/p2p\/\w+\/[\w\-]+\.html/i)) {
-        return;
-    }
-
     var $ = require('jquery'),
         adapter = require('private/adapter'),
         alertify = require('alertify'),
@@ -97,6 +93,10 @@ define('private/bt', function (require, exports, module) {
     }
 
     function init () {
+        if (!location.href.match(/\/p2p\/\w+\/[\w\-]+\.html/i)) {
+            return;
+        }
+
         $(document)
         .on('mouseenter', 'a[href]', function () {
             var $link = $(this),

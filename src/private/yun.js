@@ -267,7 +267,7 @@ define('private/yun', function (require, exports, module) {
                         dfd.reject('网络错误');
                     });
                 } else {
-                    dfd.reject('你需要登录迅雷会员');
+                    dfd.reject('云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>');
                 }
             })
             .fail(function () {

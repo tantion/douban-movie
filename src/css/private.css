@@ -34,3 +34,11 @@ a:hover,
 .private-play-link {
     margin-left: 10px;
 }
+
+a.private-yunbo-login {
+    color: white !important;
+    background-color: transparent !important;
+}
+a.private-yunbo-login:hover {
+    text-decoration: underline !important;
+}
