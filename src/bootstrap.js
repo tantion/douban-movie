@@ -16032,7 +16032,7 @@ define('private/yun', function (require, exports, module) {
         bt = require('private/bt');
 
     function isInfoHash (hash) {
-        if (/\w+/i.test(hash)) {
+        if (/^\w+$/i.test(hash)) {
             return true;
         }
         return false;
@@ -16550,7 +16550,7 @@ define('js/bt-fangying', function(require, exports, module) {
     var tmpl = '{{#items}}' +
                '<dl class="movie-improve-bt-dl">' +
                   '<dt class="movie-improve-bt-title">' +
-                      '<a title="请右键复制下载地址或者点击下载。" href="{{href}}">{{&title}}</a>' +
+                      '<a title="请右键复制下载地址或者点击下载。" class="private-play-download-link" href="{{href}}">{{&title}}</a>' +
                   '</dt>' +
                   '{{#files}}' +
                   '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
@@ -16771,7 +16771,7 @@ define('js/bt-imax', function(require, exports, module) {
     var tmpl = '{{#items}}' +
                '<dl class="movie-improve-bt-dl">' +
                   '<dt class="movie-improve-bt-title">' +
-                      '<a title="请右键复制下载地址或者点击下载。" href="{{href}}">{{&title}}</a>' +
+                      '<a title="请右键复制下载地址或者点击下载。" class="private-play-download-link" href="{{href}}">{{&title}}</a>' +
                   '</dt>' +
                   '{{#files}}' +
                   '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
@@ -17011,7 +17011,7 @@ define('js/bt-mee', function(require, exports, module) {
     var tmpl = '{{#items}}' +
                '<dl class="movie-improve-bt-dl">' +
                   '<dt class="movie-improve-bt-title">' +
-                      '<a title="请右键复制下载地址或者点击下载。" href="{{href}}">{{&title}}</a>' +
+                      '<a title="请右键复制下载地址或者点击下载。" class="private-play-download-link" href="{{href}}">{{&title}}</a>' +
                   '</dt>' +
                   '{{#files}}' +
                   '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +

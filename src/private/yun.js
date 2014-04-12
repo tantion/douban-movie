@@ -11,7 +11,7 @@ define('private/yun', function (require, exports, module) {
         bt = require('private/bt');
 
     function isInfoHash (hash) {
-        if (/\w+/i.test(hash)) {
+        if (/^\w+$/i.test(hash)) {
             return true;
         }
         return false;
