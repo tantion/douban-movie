@@ -4,6 +4,10 @@
 define('private/player', function (require, exports, module) {
     "use strict";
 
+    function closeLogs () {
+        $('article.alertify-log-show').click();
+    }
+
     if (!location.href.match(/private\/play\.html/i)) {
         return;
     }

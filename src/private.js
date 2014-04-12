@@ -17757,6 +17757,7 @@ define('private/lazy-load', function (require, exports, module) {
 
             $header.text(title);
             document.title = title;
+            $('html').addClass('loaded');
             $content.html($body.html());
 
             applyLazyLoad();
@@ -17803,6 +17804,10 @@ define('private/main', function (require, exports, module) {
 //
 define('private/player', function (require, exports, module) {
     "use strict";
+
+    function closeLogs () {
+        $('article.alertify-log-show').click();
+    }
 
     if (!location.href.match(/private\/play\.html/i)) {
         return;
@@ -18110,11 +18115,17 @@ define('private/yun', function (require, exports, module) {
     function requestUrlByHash (infohash) {
         var dfd = $.Deferred();
 
-        buildVodUrl(infohash)
-        .done(function (vodUrl) {
-            requestUrlByVod(vodUrl)
-            .done(function (urls) {
-                dfd.resolve(urls);
+        hasLogin()
+        .done(function () {
+            buildVodUrl(infohash)
+            .done(function (vodUrl) {
+                requestUrlByVod(vodUrl)
+                .done(function (urls) {
+                    dfd.resolve(urls);
+                })
+                .fail(function (msg) {
+                    dfd.reject(msg);
+                });
             })
             .fail(function (msg) {
                 dfd.reject(msg);

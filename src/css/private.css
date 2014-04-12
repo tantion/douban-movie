@@ -2,8 +2,8 @@
     max-width: 100%;
 }
 
-body a,
-body a:hover,
+a,
+a:hover,
 .magic-popup-link,
 .magic-popup-link:hover {
     display: inline;

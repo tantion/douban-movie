@@ -205,11 +205,17 @@ define('private/yun', function (require, exports, module) {
     function requestUrlByHash (infohash) {
         var dfd = $.Deferred();
 
-        buildVodUrl(infohash)
-        .done(function (vodUrl) {
-            requestUrlByVod(vodUrl)
-            .done(function (urls) {
-                dfd.resolve(urls);
+        hasLogin()
+        .done(function () {
+            buildVodUrl(infohash)
+            .done(function (vodUrl) {
+                requestUrlByVod(vodUrl)
+                .done(function (urls) {
+                    dfd.resolve(urls);
+                })
+                .fail(function (msg) {
+                    dfd.reject(msg);
+                });
             })
             .fail(function (msg) {
                 dfd.reject(msg);

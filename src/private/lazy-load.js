@@ -112,6 +112,7 @@ define('private/lazy-load', function (require, exports, module) {
 
             $header.text(title);
             document.title = title;
+            $('html').addClass('loaded');
             $content.html($body.html());
 
             applyLazyLoad();
