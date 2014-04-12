@@ -27,6 +27,7 @@ module.exports = function(grunt) {
           'src/lib/tipsy/jquery.tipsy.js',
           'src/lib/alertify/alertify.js',
           'src/alias.js',
+          'src/private/*.js',
           'src/js/*.js',
           'src/app.js'
         ],

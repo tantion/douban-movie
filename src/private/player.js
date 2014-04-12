@@ -4,10 +4,6 @@
 define('private/player', function (require, exports, module) {
     "use strict";
 
-    function closeLogs () {
-        $('article.alertify-log-show').click();
-    }
-
     if (!location.href.match(/private\/play\.html/i)) {
         return;
     }
@@ -23,6 +19,10 @@ define('private/player', function (require, exports, module) {
         params = purl(location.href).param(),
         infohash = params.infohash || '',
         url = params.url || '';
+
+    function closeLogs () {
+        $('article.alertify-log-show').click();
+    }
 
     function postMessageToPlay (url) {
         window.postMessage({action: 'play', url: url}, '*');

@@ -15551,6 +15551,854 @@ define('async', function (require, exports, module) {
 });
 
 //
+// detect download or play
+//
+define('private/adapter', function (require, exports, module) {
+    "use strict";
+
+    var adapter = {
+        isYunAction: function (evt) {
+            if (evt && evt.shiftKey && !evt.altKey && !evt.ctrlKey && !evt.metaKey) {
+                return true;
+            }
+            return false;
+        },
+        isPrivateAction: function (evt) {
+            if (evt && !evt.shiftKey && evt.altKey && !evt.ctrlKey && !evt.metaKey) {
+                return true;
+            }
+            return false;
+        },
+        isAddAction: function (evt) {
+            if (evt && !evt.shiftKey && !evt.altKey) {
+                if (navigator.userAgent.match(/Macintosh/i)) {
+                    if (!evt.ctrlKey && evt.metaKey) {
+                        return true;
+                    }
+                } else {
+                    if (evt.ctrlKey && !evt.metaKey) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            return false;
+        },
+        isDefaultPrevented: function (evt) {
+            if (adapter.isYunAction(evt) || adapter.isPrivateAction(evt) || adapter.isAddAction(evt)) {
+                return true;
+            }
+            return false;
+        }
+    };
+
+    module.exports = adapter;
+});
+
+
+//
+// quick download
+//
+define('private/bt', function (require, exports, module) {
+    "use strict";
+
+    if (!location.href.match(/\/p2p\/\w+\/[\w\-]+\.html/i)) {
+        return;
+    }
+
+    var $ = require('jquery'),
+        adapter = require('private/adapter'),
+        alertify = require('alertify'),
+        $iframe = null;
+
+
+    function download (url) {
+        var dfd = new $.Deferred();
+
+        if (isPrivateBtUrl(url)) {
+            $.ajax({
+                url: url,
+                type: 'get',
+                dataType: 'text',
+                timeout: 30 * 1000
+            })
+            .done(function (data) {
+                var html = data.replace(/src=/ig, 'data-src='),
+                    $html = $($.parseHTML(html)),
+                    action = url.replace(/file\.php.*/i, 'down.php'),
+                    $form = $html.find('form');
+
+                $form.attr('action', action);
+
+                if (!$iframe) {
+                    $iframe = $('<iframe/>').hide().appendTo('body');
+                }
+                $iframe.html($form);
+
+                $form[0].submit();
+
+                dfd.resolve();
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+        } else {
+            dfd.reject('url error');
+        }
+
+        return dfd.promise();
+    }
+
+    function isPrivateBtUrl (url) {
+        url = '' + url;
+        if (url.match(/^http:\/\/\w+\.\w+\.com\/\w+\/file\.php\/\w+\.html/i)) {
+            return true;
+        }
+    }
+
+    function load (url) {
+        var dfd = $.Deferred(),
+            matches = [],
+            data = null,
+            xhr = null,
+            base = '',
+            id = '';
+
+        if (isPrivateBtUrl(url)) {
+            matches = url.match(/^(http:\/\/\w+\.\w+\.com\/\w+\/)file\.php\/(\w+)\.html/i);
+            base = matches[1];
+            id = matches[2];
+            xhr = new XMLHttpRequest();
+
+            xhr.open('POST', base + 'down.php', true);
+            xhr.responseType = "arraybuffer";
+
+            xhr.onload = function() {
+                var blob = new Blob([xhr.response], {type: 'application/octet-stream'});
+                dfd.resolve(blob);
+            };
+            xhr.onerror = function () {
+                dfd.reject();
+            };
+
+            data = new FormData();
+            data.append('type', 'torrent');
+            data.append('name', 'null');
+            data.append('id', id);
+
+            xhr.send(data);
+        } else {
+            dfd.reject();
+        }
+
+        return dfd.promise();
+    }
+
+    function init () {
+        $(document)
+        .on('mouseenter', 'a[href]', function () {
+            var $link = $(this),
+                href = $link.prop('href');
+
+            if (!$link.hasClass('private-play-download-link') && isPrivateBtUrl(href)) {
+                $link.addClass('private-play-download-link');
+            }
+        })
+        .on('click', 'a.private-play-download-link', function (evt) {
+            // 拦截
+            if (adapter.isDefaultPrevented(evt)) {
+                return;
+            }
+
+            evt.preventDefault();
+            alertify.log('正在下载中... 同时 `Shift+单击` 可云播');
+            download($(this).prop('href'))
+            .fail(function () {
+                alertify.error('网络错误，下载失败');
+            });
+        });
+    }
+
+    module.exports = {
+        init: init,
+        isPrivateBtUrl: isPrivateBtUrl,
+        download: download,
+        load: load
+    };
+});
+
+//
+// use custom detail
+//
+define('private/handle-detail', function (require, exports, module) {
+    "use strict";
+
+    var $ = require('jquery');
+
+    function init () {
+        if (!location.href.match(/\/\d+\/\d+\.html/i)) {
+            return;
+        }
+
+        $(document)
+        .on('mousedown', 'a[href^="/p2p/"]', function (evt) {
+            var $link = $(this),
+                href = $link.prop('href');
+            href = 'http://tantion.com/private/detail.html?url=' + href;
+            $link.attr('href', href);
+        });
+    }
+
+    module.exports = {
+        init: init
+    };
+});
+
+//
+// lazy load image
+//
+define('private/lazy-load', function (require, exports, module) {
+    "use strict";
+
+    if (!location.href.match(/private\/detail\.html/i)) {
+        return;
+    }
+
+    function applyLazyLoad () {
+        $('.lazy-load-img').lazyload();
+
+        $(document).magnificPopup({
+            delegate: '.magic-popup-link',
+            gallery: {
+                enabled: true
+            },
+            image: {
+                verticalFit: false,
+                titleSrc: function (mfp) {
+                    return '<a href="#private-img-' + mfp.index + '" class="private-img-go">GO</a>';
+                }
+            },
+            type: 'image'
+        })
+        .on('click', 'a.private-img-go', function () {
+            $.magnificPopup.close();
+        });
+    }
+
+    function applyAffix () {
+        $('#private-affix-main').affix();
+    }
+
+    var $ = require('jquery'),
+        purl = require('purl'),
+        $main = $('<div id="main" class="container">' +
+                  '<div class="row"><h3 id="private-header-top" class="private-header"></h3></div>' +
+                  '<div class="row"><div class="col-md-9 private-content"></div><div class="col-md-3 private-sidebar"></div></div>' +
+                  '</div>'),
+        $header = $main.find('.private-header'),
+        $content = $main.find('.private-content'),
+        $sidebar = $main.find('.private-sidebar'),
+        $navs = $('<div class="private-sidebar-main" id="private-affix-main">' +
+                      '<ul class="nav private-sidenav">' +
+                      '</ul>' +
+                      '<a class="back-to-top" href="#private-header-top">返回顶部</a>' +
+                  '</div>'),
+        url = purl(location.href).param('url');
+
+    function init () {
+        $.ajax({
+            url: url,
+            type: 'get',
+            timeout: 30 * 1000,
+            dataType: 'text'
+        })
+        .done(function (data) {
+            var html = data.replace(/src=/ig, 'data-src='),
+                $html = $($.parseHTML(html)),
+                $title = $html.filter('title'),
+                title = $.trim($title.text()),
+                $body = $html.filter('#main'),
+                body = $body.find('#content').html() || '',
+                names = [],
+                index = 0,
+                sections = [];
+
+            sections = body.split(/<br>\n<br>\n/).map(function (section) {
+                var matches = section.match(/^(.*)<br>/i),
+                    repl = '',
+                    name = '';
+                if (matches && matches.length) {
+                    name = matches[1];
+                    repl = '<h4 class="private-section-name" id="private-section-name-' + index + '">' + name + '</h4>';
+                    section = section.replace(/^.*<br>/i, repl);
+                    index += 1;
+                    names.push(name);
+                }
+                section = '<div class="private-section">' + section + '</div>';
+                return section;
+            });
+
+            body = sections.join('<br>\n');
+            $body = $body.html($.parseHTML(body));
+
+            $body.find('img').each(function (i) {
+                var $img = $(this),
+                    src = $img.data('src'),
+                    $link = $('<a/>');
+
+                $img.attr('data-original', src);
+                $img.addClass('lazy-load-img');
+                $img.attr('id', 'private-img-' + i);
+                $link.attr('href', src);
+                $link.addClass('magic-popup-link');
+                $link.insertBefore($img);
+                $link.append($img);
+            });
+
+            var navs = '';
+            $.each(names, function (i, name) {
+                if (!i) {
+                    navs += '<li class="active"><a href="#private-section-name-' + i +'">' + name + '</a></li>';
+                } else {
+                    navs += '<li class=""><a href="#private-section-name-' + i +'">' + name + '</a></li>';
+                }
+            });
+            $navs.find('.private-sidenav').html(navs);
+            $sidebar.html($navs);
+
+            $header.text(title);
+            document.title = title;
+            $('html').addClass('loaded');
+            $content.html($body.html());
+
+            applyLazyLoad();
+            applyAffix();
+        })
+        .fail(function () {
+            $content.html('error');
+        });
+
+        document.title = 'loading';
+        $('body').append($main);
+    }
+
+    module.exports = {
+        init: init
+    };
+});
+
+//
+// private main
+//
+define('private/main', function (require, exports, module) {
+    "use strict";
+
+    var ms = [
+        require('private/handle-detail'),
+        require('private/lazy-load'),
+        require('private/bt'),
+        require('private/yunbo'),
+        require('private/player')
+    ];
+
+    var $ = require('jquery');
+
+    ms.forEach(function (m) {
+        if ($.isFunction(m.init)) {
+            m.init();
+        }
+    });
+});
+
+//
+// player
+//
+define('private/player', function (require, exports, module) {
+    "use strict";
+
+    if (!location.href.match(/private\/play\.html/i)) {
+        return;
+    }
+
+    var $ = require('jquery'),
+        purl = require('purl'),
+        aelem = document.createElement('a'),
+        $container = $('.container'),
+        $content = $('.video-container'),
+        $nav = $('.video-nav'),
+        yun = require('private/yun'),
+        alertify = require('alertify'),
+        params = purl(location.href).param(),
+        infohash = params.infohash || '',
+        url = params.url || '';
+
+    function closeLogs () {
+        $('article.alertify-log-show').click();
+    }
+
+    function postMessageToPlay (url) {
+        window.postMessage({action: 'play', url: url}, '*');
+    }
+
+    function requestHash () {
+        var dfd = $.Deferred();
+
+        if (infohash) {
+            dfd.resolve(infohash);
+        } else {
+            if (url) {
+                yun.requestHash(url)
+                .done(function (hash) {
+                    infohash = hash;
+                    history.replaceState(null, null, location.pathname + '?infohash=' + hash);
+                })
+                .fail(function (msg) {
+                    dfd.reject(msg);
+                });
+            }
+        }
+
+        return dfd.promise();
+    }
+
+    function init () {
+        requestHash()
+        .done(function (hash) {
+            yun.requestUrlByHash(hash)
+            .done(function (urls) {
+                aelem.setAttribute('href', urls[0].vod_url);
+                url = 'http://' + aelem.host + '/*';
+                chrome.runtime.sendMessage({action: 'referer', data: {url: url}});
+            })
+            .done(function (urls) {
+                var navs = $.map(urls, function (url, i) {
+                    var m3u8 = url.vod_url,
+                    flv = url.vod_url_dt17,
+                    title = '流畅版';
+
+                    if (i === 1) {
+                        title = '高清版';
+                    }
+                    else if (i > 1) {
+                        title = '超清版';
+                    }
+
+                    return '<li><a class="private-play-vod" href="/private/play.html?flv=' + encodeURIComponent(flv) + '&m3u8=' +
+                        encodeURIComponent(m3u8) + '" data-flv="' + flv + '" data-m3u8="' + m3u8 + '">' + title +
+                        '</a><a href="' + flv + '">flv</a>' + '<a href="' + m3u8 + '">m3u8</a></li>';
+                });
+                navs = navs.join('\n');
+                $nav.html(navs);
+
+                postMessageToPlay({flv: urls[0].vod_url_dt17, m3u8: urls[0].vod_url});
+            })
+            .fail(function (msg) {
+                alertify.error(msg || '未知错误');
+            });
+        })
+        .fail(function (msg) {
+            if (msg) {
+                alertify.error(msg);
+            }
+        });
+
+        $(document)
+        .on('click', '.private-play-vod', function (evt) {
+            evt.preventDefault();
+
+            var $link = $(this),
+                flv = $link.data('flv'),
+                m3u8 = $link.data('m3u8');
+
+            postMessageToPlay({flv: flv, m3u8: m3u8});
+        });
+    }
+
+    module.exports = {
+        init: init
+    };
+});
+
+//
+// yun
+//
+define('private/yun', function (require, exports, module) {
+    "use strict";
+
+    var $ = require('jquery'),
+        hashCache = {},
+        logined = false,
+        tt = require('js/bt-tiantang'),
+        bt = require('private/bt');
+
+    function isInfoHash (hash) {
+        if (/\w+/i.test(hash)) {
+            return true;
+        }
+        return false;
+    }
+
+    function hasLogin () {
+        var dfd = $.Deferred();
+
+        if (!logined) {
+            $.ajax({
+                url: 'http://i.vod.xunlei.com/req_history_play_list/req_num/30/req_offset/0?type=kongjian&order=create&folder_id=0',
+                type: 'get',
+                dataType: 'json',
+                timeout: 30 * 1000
+            })
+            .done(function (data) {
+                if (data.resp.error_msg) {
+                    dfd.reject('云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>');
+                } else {
+                    logined = true;
+                    dfd.resolve();
+                }
+            })
+            .fail(function () {
+                dfd.reject('网络错误');
+            });
+        } else {
+            dfd.resolve();
+        }
+
+        return dfd.promise();
+    }
+
+    function uploadBt (blob) {
+        var formData = new FormData(),
+            dfd = $.Deferred(),
+            xhr = new XMLHttpRequest();
+
+        formData.append('Filename', 'null.torrent');
+        formData.append('Filedata', blob, 'null.torrent');
+        formData.append('Upload', 'Submit Query');
+
+        xhr.open('POST', 'http://i.vod.xunlei.com/submit/post_bt', true);
+        xhr.responseType = 'json';
+        xhr.onload = function () {
+            var data = xhr.response;
+            if (data.infohash) {
+                dfd.resolve(data.infohash);
+            } else {
+                dfd.reject('上传bt失败，或者bt无效');
+            }
+        };
+        xhr.onerror = function () {
+            dfd.reject('网络错误');
+        };
+
+        xhr.send(formData);
+
+        return dfd.promise();
+    }
+
+    function requestHash (url) {
+        var dfd = $.Deferred(),
+            loader = null;
+
+        if (hashCache.hasOwnProperty(url)) {
+            dfd.resolve(hashCache[url]);
+        } else {
+            hasLogin()
+            .done(function () {
+                if (bt.isPrivateBtUrl(url) || tt.isTiangtangUrl(url)) {
+                    if (bt.isPrivateBtUrl(url)) {
+                        loader = bt.load(url);
+                    } else {
+                        loader = tt.load(url);
+                    }
+
+                    loader
+                    .done(function (blob) {
+                        uploadBt(blob)
+                        .done(function (hash) {
+                            hashCache[url] = hash;
+                            dfd.resolve(hash);
+                        })
+                        .fail(function (msg) {
+                            dfd.reject(msg);
+                        });
+                    })
+                    .fail(function (msg) {
+                        dfd.reject(msg);
+                    });
+                } else {
+                    dfd.resolve(url);
+                }
+            })
+            .fail(function (msg) {
+                dfd.reject(msg);
+            });
+        }
+
+        return dfd.promise();
+    }
+
+    function requestList (infohash) {
+        var dfd = $.Deferred();
+
+        $.ajax({
+            url: 'http://i.vod.xunlei.com/req_subBT/info_hash/' + infohash + '/req_num/10/req_offset/0',
+            type: 'get',
+            timeout: 30 * 1000,
+            dataType: 'json'
+        })
+        .done(function (data) {
+            var list = data.subfile_list;
+            if (list && list.length) {
+                dfd.resolve(list);
+            } else {
+                dfd.reject('没有找到播放列表');
+            }
+        })
+        .fail(function () {
+            dfd.reject('网络错误');
+        });
+
+        return dfd.promise();
+    }
+
+    function yunCookie (name) {
+        var dfd = $.Deferred();
+
+        chrome.runtime.sendMessage({
+            action: 'cookie',
+            data: {name: name}
+        }, function (value) {
+            dfd.resolve(value);
+        });
+
+        return dfd.promise();
+    }
+
+    function buildVodUrl (infohash) {
+        var dfd = $.Deferred();
+
+        $.when(yunCookie('sessionid'), yunCookie('userid'))
+        .done(function (sid, uid) {
+            if (sid && uid) {
+                var url;
+                if (isInfoHash(infohash)) {
+                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                } else {
+                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=' + encodeURIComponent(infohash) + '&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                }
+                dfd.resolve(url);
+            } else {
+                dfd.reject('需要先登录迅雷');
+            }
+        })
+        .fail(function () {
+            dfd.reject('网络错误');
+        });
+
+        return dfd.promise();
+    }
+
+    function requestUrlByVod(vodUrl) {
+        var dfd = $.Deferred();
+
+        $.ajax({
+            url: vodUrl,
+            type: 'get',
+            dataType: 'json',
+            timeout: 30 * 1000
+        })
+        .done(function (data) {
+            var urls = (data && data.resp) ? data.resp.vodinfo_list : [],
+            url = '';
+            if (urls && urls.length) {
+                dfd.resolve(urls);
+            } else {
+                dfd.reject('转码未完成，无法播放');
+            }
+        })
+        .fail(function () {
+            dfd.reject('网络错误');
+        });
+
+        return dfd.promise();
+    }
+
+    function requestUrlByHash (infohash) {
+        var dfd = $.Deferred();
+
+        hasLogin()
+        .done(function () {
+            buildVodUrl(infohash)
+            .done(function (vodUrl) {
+                requestUrlByVod(vodUrl)
+                .done(function (urls) {
+                    dfd.resolve(urls);
+                })
+                .fail(function (msg) {
+                    dfd.reject(msg);
+                });
+            })
+            .fail(function (msg) {
+                dfd.reject(msg);
+            });
+        })
+        .fail(function (msg) {
+            dfd.reject(msg);
+        });
+
+        return dfd.promise();
+    }
+
+    function addByUrl (url) {
+        var dfd = $.Deferred();
+
+        requestHash(url)
+        .done(function (hash) {
+            $.when(yunCookie('userid'), yunCookie('sessionid'))
+            .done(function (uid, sid) {
+                var post = {};
+
+                if (isInfoHash(hash)) {
+                    post.urls = [{
+                        id: 1,
+                        url: 'bt://' + hash
+                    }];
+                } else {
+                    post.urls = [{
+                        id: 0,
+                        url: hash
+                    }];
+                }
+
+                if (uid && sid) {
+                    $.ajax({
+                        url: 'http://i.vod.xunlei.com/req_add_record?from=vlist&platform=0&userid=' + uid + '&sessionid=' + sid + '&folder_id=0',
+                        type: 'post',
+                        processData: false,
+                        data: JSON.stringify(post),
+                        dataType: 'json'
+                    })
+                    .done(function (data) {
+                        if (data && data.resp && data.resp.res && data.resp.res.length) {
+                            dfd.resolve();
+                        } else {
+                            dfd.reject('添加失败，可能是地址错误');
+                        }
+                    })
+                    .fail(function () {
+                        dfd.reject('网络错误');
+                    });
+                } else {
+                    dfd.reject('你需要登录迅雷会员');
+                }
+            })
+            .fail(function () {
+                dfd.reject('网络错误');
+            });
+        })
+        .fail(function (msg) {
+            dfd.reject(msg);
+        });
+
+        return dfd.promise();
+    }
+
+    module.exports = {
+        requestHash: requestHash,
+        requestUrlByHash: requestUrlByHash,
+        hasLogin: hasLogin,
+        addByUrl: addByUrl,
+        cookie: yunCookie
+    };
+});
+
+//
+// yun bo detect
+//
+define('private/yunbo', function (require, exports, module) {
+    "use strict";
+
+    var $ = require('jquery'),
+        yun = require('private/yun'),
+        adapter = require('private/adapter'),
+        alertify = require('alertify'),
+        ctrlKey = navigator.userAgent.match(/Macintosh/i) ? 'command' :  'ctrl';
+
+    function closeLogs () {
+        $('article.alertify-log-show').click();
+    }
+
+    function openYunbo (href, usePrivate) {
+        closeLogs();
+        alertify.log('正在加载云播地址... <br />同时 `' + ctrlKey + '+单击` 可添加到云播', '', 10000);
+        yun.requestHash(href)
+        .done(function (hash) {
+            closeLogs();
+            alertify.success('准备云播');
+
+            yun.requestUrlByHash(hash)
+            .done(function () {
+                var url = '';
+                if (usePrivate) {
+                    url = 'http://tantion.com/private/play.html?infohash=' + hash;
+                } else {
+                    url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=bt%3A%2F%2F' + hash + '&playwindow=player';
+                }
+                chrome.runtime.sendMessage({action: 'openurl', data: {url: url}});
+                closeLogs();
+                alertify.success('已找到云播资源，正在打开播放页面', 1000);
+            })
+            .fail(function (msg) {
+                closeLogs();
+                alertify.error(msg || '云播失败，未知错误');
+            });
+        })
+        .fail(function (msg) {
+            closeLogs();
+            alertify.error(msg || '云播失败，未知错误');
+        });
+    }
+
+    function addYunbo (href) {
+        closeLogs();
+        alertify.log('正在添加地址到云播...', '', 10000);
+
+        yun.addByUrl(href)
+        .done(function () {
+            closeLogs();
+            alertify.success('已添加找到云播空间', 1000);
+        })
+        .fail(function (msg) {
+            closeLogs();
+            alertify.error(msg || '添加云播失败，未知错误');
+        });
+    }
+
+    function init () {
+        $(document)
+        .on('click', 'a.private-play-download-link', function (evt) {
+            var href = $(this).prop('href');
+
+            if (adapter.isYunAction(evt)) {
+                evt.preventDefault();
+                openYunbo(href);
+            }
+            else if (adapter.isPrivateAction(evt)) {
+                evt.preventDefault();
+                openYunbo(href, true);
+            }
+            else if (adapter.isAddAction(evt)) {
+                evt.preventDefault();
+                addYunbo(href);
+            }
+        });
+    }
+
+    module.exports = {
+        init: init
+    };
+});
+
+//
 // bt 搜索提供者
 // http://yun.baidu.com
 //
@@ -16652,10 +17500,18 @@ define('js/bt-tiantang', function(require, exports, module) {
     var $ = require('jquery'),
         m = require('mustache'),
         purl = require('purl'),
+        adapter = require('private/adapter'),
         $iframe = null,
         timeout = 30 * 1000,
         SUBJECT_CACHE = {},
         ITEMS_CACHE = {};
+
+    function isTiangtangUrl (url) {
+        if (/^http:\/\/www\.bttiantang\.com\/download\.php/i.test(url)) {
+            return true;
+        }
+        return false;
+    }
 
     function download (url) {
         var $form = null,
@@ -16673,6 +17529,39 @@ define('js/bt-tiantang', function(require, exports, module) {
             }
             $iframe.html($form);
             $form.submit();
+        } else {
+            dfd.reject();
+        }
+
+        return dfd.promise();
+    }
+
+    function load (url) {
+        var dfd = $.Deferred(),
+            params = purl(url).param(),
+            data = null,
+            xhr = null;
+
+        if (params && params.id && params.uhash) {
+            xhr = new XMLHttpRequest();
+
+            xhr.open('POST', 'http://www.bttiantang.com/download.php', true);
+            xhr.responseType = "arraybuffer";
+
+            xhr.onload = function() {
+                var blob = new Blob([xhr.response], {type: 'application/octet-stream'});
+                dfd.resolve(blob);
+            };
+            xhr.onerror = function () {
+                dfd.reject();
+            };
+
+            data = new FormData();
+            data.append('action', 'download');
+            data.append('id', params.id);
+            data.append('uhash', params.uhash);
+
+            xhr.send(data);
         } else {
             dfd.reject();
         }
@@ -16702,7 +17591,7 @@ define('js/bt-tiantang', function(require, exports, module) {
     var tmpl = '{{#items}}' +
                '<dl class="movie-improve-bt-dl">' +
                   '<dt class="movie-improve-bt-title">' +
-                      '<a title="点击下载种子" class="movie-improve-bt-download" href="{{href}}">{{title}}</a>' +
+                      '<a title="点击下载种子" class="movie-improve-bt-download private-play-download-link" href="{{href}}">{{title}}</a>' +
                   '</dt>' +
                   '{{#files}}' +
                   '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
@@ -16719,6 +17608,10 @@ define('js/bt-tiantang', function(require, exports, module) {
             $(this).tipsy({gravity: 'w', offset: 3}).tipsy('show');
         })
         .on('click', '.movie-improve-bt-download', function (evt) {
+            if (adapter.isDefaultPrevented(evt)) {
+                return;
+            }
+
             evt.preventDefault();
 
             var $btn = $(this);
@@ -16895,6 +17788,8 @@ define('js/bt-tiantang', function(require, exports, module) {
 
     module.exports = {
         name: 'BT天堂',
+        load: load,
+        isTiangtangUrl: isTiangtangUrl,
         search: search
     };
 });
@@ -16943,6 +17838,7 @@ define('js/main', function(require, exports, module) {
 
     // 初始化模块
     require('js/bt-search').init();
+    require('private/yunbo').init();
 });
 
 //

@@ -14,4 +14,5 @@ define('js/main', function(require, exports, module) {
 
     // 初始化模块
     require('js/bt-search').init();
+    require('private/yunbo').init();
 });

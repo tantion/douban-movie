@@ -28,7 +28,7 @@ define('private/adapter', function (require, exports, module) {
                         return true;
                     }
                 }
-                return true;
+                return false;
             }
             return false;
         },

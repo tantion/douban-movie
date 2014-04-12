@@ -8,10 +8,18 @@ define('js/bt-tiantang', function(require, exports, module) {
     var $ = require('jquery'),
         m = require('mustache'),
         purl = require('purl'),
+        adapter = require('private/adapter'),
         $iframe = null,
         timeout = 30 * 1000,
         SUBJECT_CACHE = {},
         ITEMS_CACHE = {};
+
+    function isTiangtangUrl (url) {
+        if (/^http:\/\/www\.bttiantang\.com\/download\.php/i.test(url)) {
+            return true;
+        }
+        return false;
+    }
 
     function download (url) {
         var $form = null,
@@ -29,6 +37,39 @@ define('js/bt-tiantang', function(require, exports, module) {
             }
             $iframe.html($form);
             $form.submit();
+        } else {
+            dfd.reject();
+        }
+
+        return dfd.promise();
+    }
+
+    function load (url) {
+        var dfd = $.Deferred(),
+            params = purl(url).param(),
+            data = null,
+            xhr = null;
+
+        if (params && params.id && params.uhash) {
+            xhr = new XMLHttpRequest();
+
+            xhr.open('POST', 'http://www.bttiantang.com/download.php', true);
+            xhr.responseType = "arraybuffer";
+
+            xhr.onload = function() {
+                var blob = new Blob([xhr.response], {type: 'application/octet-stream'});
+                dfd.resolve(blob);
+            };
+            xhr.onerror = function () {
+                dfd.reject();
+            };
+
+            data = new FormData();
+            data.append('action', 'download');
+            data.append('id', params.id);
+            data.append('uhash', params.uhash);
+
+            xhr.send(data);
         } else {
             dfd.reject();
         }
@@ -58,7 +99,7 @@ define('js/bt-tiantang', function(require, exports, module) {
     var tmpl = '{{#items}}' +
                '<dl class="movie-improve-bt-dl">' +
                   '<dt class="movie-improve-bt-title">' +
-                      '<a title="点击下载种子" class="movie-improve-bt-download" href="{{href}}">{{title}}</a>' +
+                      '<a title="点击下载种子" class="movie-improve-bt-download private-play-download-link" href="{{href}}">{{title}}</a>' +
                   '</dt>' +
                   '{{#files}}' +
                   '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
@@ -75,6 +116,10 @@ define('js/bt-tiantang', function(require, exports, module) {
             $(this).tipsy({gravity: 'w', offset: 3}).tipsy('show');
         })
         .on('click', '.movie-improve-bt-download', function (evt) {
+            if (adapter.isDefaultPrevented(evt)) {
+                return;
+            }
+
             evt.preventDefault();
 
             var $btn = $(this);
@@ -251,6 +296,8 @@ define('js/bt-tiantang', function(require, exports, module) {
 
     module.exports = {
         name: 'BT天堂',
+        load: load,
+        isTiangtangUrl: isTiangtangUrl,
         search: search
     };
 });
