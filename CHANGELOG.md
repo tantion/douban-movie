@@ -4,7 +4,8 @@ A chrome extension for Douban Movie
 
 ## Change Log
 
-- v2.0.0 - April 13 2014
+- v2.1.0 - April 14 2014
+    - Fixed yunbo
     - 支持一键云播
     - Added web player
 
