@@ -14,6 +14,13 @@ define('private/yunbo', function (require, exports, module) {
         $('article.alertify-log-show').click();
     }
 
+    function isInfoHash (hash) {
+        if (/^\w+$/.test(hash)) {
+            return true;
+        }
+        return false;
+    }
+
     function openYunbo (href, usePrivate) {
         closeLogs();
         alertify.log('正在加载云播地址... <br />同时 `' + ctrlKey + '+单击` 可添加到云播', '', 10000);
@@ -26,9 +33,17 @@ define('private/yunbo', function (require, exports, module) {
             .done(function () {
                 var url = '';
                 if (usePrivate) {
-                    url = 'http://tantion.com/private/play.html?infohash=' + hash;
+                    if (isInfoHash(hash)) {
+                        url = 'http://tantion.com/private/play.html?infohash=' + hash;
+                    } else {
+                        url = 'http://tantion.com/private/play.html?url=' + hash;
+                    }
                 } else {
-                    url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=bt%3A%2F%2F' + hash + '&playwindow=player';
+                    if (isInfoHash(hash)) {
+                        url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=bt%3A%2F%2F' + hash + '&playwindow=player';
+                    } else {
+                        url = 'http://vod.xunlei.com/share.html?from=macthunder&url=' + encodeURIComponent(hash) + '&playwindow=player';
+                    }
                 }
                 chrome.runtime.sendMessage({action: 'openurl', data: {url: url}});
                 closeLogs();
