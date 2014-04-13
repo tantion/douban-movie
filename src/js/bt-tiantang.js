@@ -61,8 +61,12 @@ define('js/bt-tiantang', function(require, exports, module) {
                 var blob = new Blob([xhr.response], {type: 'application/octet-stream'});
                 dfd.resolve(blob);
             };
+            xhr.timeout = 10 * 1000;
             xhr.onerror = function () {
-                dfd.reject();
+                dfd.reject('网络错误');
+            };
+            xhr.ontimeout = function () {
+                dfd.reject('下载bt超时');
             };
 
             data = new FormData();
@@ -72,7 +76,7 @@ define('js/bt-tiantang', function(require, exports, module) {
 
             xhr.send(data);
         } else {
-            dfd.reject();
+            dfd.reject('地址错误');
         }
 
         return dfd.promise();

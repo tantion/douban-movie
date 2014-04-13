@@ -61,13 +61,16 @@ define('private/yun', function (require, exports, module) {
             if (data.infohash) {
                 dfd.resolve(data.infohash);
             } else {
-                dfd.reject('上传bt失败，或者bt无效');
+                dfd.reject('bt地址无效');
             }
         };
         xhr.onerror = function () {
             dfd.reject('网络错误');
         };
-
+        xhr.timeout = 60 * 1000;
+        xhr.ontimeout = function () {
+            dfd.reject('上传bt超时');
+        };
         xhr.send(formData);
 
         return dfd.promise();

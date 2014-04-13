@@ -15673,9 +15673,14 @@ define('private/bt', function (require, exports, module) {
                 var blob = new Blob([xhr.response], {type: 'application/octet-stream'});
                 dfd.resolve(blob);
             };
+            xhr.timeout = 10 * 1000;
             xhr.onerror = function () {
-                dfd.reject();
+                dfd.reject('网络错误');
             };
+            xhr.ontimeout = function () {
+                dfd.reject('下载bt超时');
+            };
+
 
             data = new FormData();
             data.append('type', 'torrent');
@@ -15684,7 +15689,7 @@ define('private/bt', function (require, exports, module) {
 
             xhr.send(data);
         } else {
-            dfd.reject();
+            dfd.reject('bt地址错误');
         }
 
         return dfd.promise();
@@ -16082,13 +16087,16 @@ define('private/yun', function (require, exports, module) {
             if (data.infohash) {
                 dfd.resolve(data.infohash);
             } else {
-                dfd.reject('上传bt失败，或者bt无效');
+                dfd.reject('bt地址无效');
             }
         };
         xhr.onerror = function () {
             dfd.reject('网络错误');
         };
-
+        xhr.timeout = 60 * 1000;
+        xhr.ontimeout = function () {
+            dfd.reject('上传bt超时');
+        };
         xhr.send(formData);
 
         return dfd.promise();
@@ -17568,8 +17576,12 @@ define('js/bt-tiantang', function(require, exports, module) {
                 var blob = new Blob([xhr.response], {type: 'application/octet-stream'});
                 dfd.resolve(blob);
             };
+            xhr.timeout = 10 * 1000;
             xhr.onerror = function () {
-                dfd.reject();
+                dfd.reject('网络错误');
+            };
+            xhr.ontimeout = function () {
+                dfd.reject('下载bt超时');
             };
 
             data = new FormData();
@@ -17579,7 +17591,7 @@ define('js/bt-tiantang', function(require, exports, module) {
 
             xhr.send(data);
         } else {
-            dfd.reject();
+            dfd.reject('地址错误');
         }
 
         return dfd.promise();
