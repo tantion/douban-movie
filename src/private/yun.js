@@ -160,9 +160,9 @@ define('private/yun', function (require, exports, module) {
             if (sid && uid) {
                 var url;
                 if (isInfoHash(infohash)) {
-                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=0&userid=' + uid + '&vip=1&sessionid=' + sid;
                 } else {
-                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=' + encodeURIComponent(infohash) + '&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=' + encodeURIComponent(infohash) + '&platform=0&userid=' + uid + '&vip=1&sessionid=' + sid;
                 }
                 dfd.resolve(url);
             } else {
