@@ -17545,6 +17545,7 @@ define('js/bt-tiantang', function(require, exports, module) {
         if (params && params.id && params.uhash) {
             $form = $('<form method="POST" action="http://www.bttiantang.com/download.php">' +
               '<input type="hidden" name="action" value="download"/>' +
+              '<input type="hidden" name="down" value="d1"/>' +
               '<input type="hidden" name="id" value="' + params.id + '"/> '+
               '<input type="hidden" name="uhash" value="' + params.uhash + '"/>' +
               '</form>');
