@@ -128,7 +128,7 @@ define('private/yun', function (require, exports, module) {
             dataType: 'json'
         })
         .done(function (data) {
-            var list = data.subfile_list;
+            var list = data.resp && data.resp.subfile_list;
             if (list && list.length) {
                 dfd.resolve(list);
             } else {
@@ -138,6 +138,27 @@ define('private/yun', function (require, exports, module) {
         .fail(function () {
             dfd.reject('网络错误');
         });
+
+        return dfd.promise();
+    }
+
+    var BTURL_CACHE = {};
+    function requestBtUrl (infohash) {
+        var dfd = $.Deferred();
+
+        if (!BTURL_CACHE.hasOwnProperty(infohash)) {
+            requestList(infohash)
+            .done(function (urls) {
+                var bturl = 'bt://' + infohash + '/' + urls[0].index;
+                BTURL_CACHE[infohash] = bturl;
+                dfd.resolve(bturl);
+            })
+            .fail(function (msg) {
+                dfd.reject(msg);
+            });
+        } else {
+            dfd.resolve(BTURL_CACHE[infohash]);
+        }
 
         return dfd.promise();
     }
@@ -163,11 +184,18 @@ define('private/yun', function (require, exports, module) {
             if (sid && uid) {
                 var url;
                 if (isInfoHash(infohash)) {
-                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=bt%3A%2F%2F' + infohash + '%2F0&platform=0&userid=' + uid + '&vip=1&sessionid=' + sid;
+                    requestBtUrl(infohash)
+                    .done(function (bturl) {
+                        url = 'http://i.vod.xunlei.com/req_get_method_vod?url='+  encodeURIComponent(bturl) + '&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                        dfd.resolve(url);
+                    })
+                    .fail(function (msg) {
+                        dfd.reject(msg);
+                    });
                 } else {
-                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=' + encodeURIComponent(infohash) + '&platform=0&userid=' + uid + '&vip=1&sessionid=' + sid;
+                    url = 'http://i.vod.xunlei.com/req_get_method_vod?url=' + encodeURIComponent(infohash) + '&platform=1&userid=' + uid + '&vip=1&sessionid=' + sid;
+                    dfd.resolve(url);
                 }
-                dfd.resolve(url);
             } else {
                 dfd.reject('需要先登录迅雷');
             }
@@ -286,6 +314,7 @@ define('private/yun', function (require, exports, module) {
 
     module.exports = {
         requestHash: requestHash,
+        requestBtUrl: requestBtUrl,
         requestUrlByHash: requestUrlByHash,
         hasLogin: hasLogin,
         addByUrl: addByUrl,

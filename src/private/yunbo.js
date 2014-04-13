@@ -21,6 +21,42 @@ define('private/yunbo', function (require, exports, module) {
         return false;
     }
 
+    function requestOpenUrl (hash, usePrivate) {
+        var dfd = $.Deferred();
+
+        yun.requestUrlByHash(hash)
+        .done(function () {
+            var url = '';
+            if (usePrivate) {
+                if (isInfoHash(hash)) {
+                    url = 'http://tantion.com/private/play.html?infohash=' + hash;
+                } else {
+                    url = 'http://tantion.com/private/play.html?url=' + hash;
+                }
+                dfd.resolve(url);
+            } else {
+                if (isInfoHash(hash)) {
+                    yun.requestBtUrl(hash)
+                    .done(function (bturl) {
+                        url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=' +  encodeURIComponent(bturl) + '&playwindow=player';
+                        dfd.resolve(url);
+                    })
+                    .fail(function (msg) {
+                        dfd.reject(msg);
+                    });
+                } else {
+                    url = 'http://vod.xunlei.com/share.html?from=macthunder&url=' + encodeURIComponent(hash) + '&playwindow=player';
+                    dfd.resolve(url);
+                }
+            }
+        })
+        .fail(function (msg) {
+            dfd.reject(msg);
+        });
+
+        return dfd.promise();
+    }
+
     function openYunbo (href, usePrivate) {
         closeLogs();
         alertify.log('正在加载云播地址... <br />同时 `' + ctrlKey + '+单击` 可添加到云播', '', 10000);
@@ -29,25 +65,11 @@ define('private/yunbo', function (require, exports, module) {
             closeLogs();
             alertify.success('准备云播');
 
-            yun.requestUrlByHash(hash)
-            .done(function () {
-                var url = '';
-                if (usePrivate) {
-                    if (isInfoHash(hash)) {
-                        url = 'http://tantion.com/private/play.html?infohash=' + hash;
-                    } else {
-                        url = 'http://tantion.com/private/play.html?url=' + hash;
-                    }
-                } else {
-                    if (isInfoHash(hash)) {
-                        url = 'http://vod.xunlei.com/share.html?from=macthunder&type=bt&url=bt%3A%2F%2F' + hash + '&playwindow=player';
-                    } else {
-                        url = 'http://vod.xunlei.com/share.html?from=macthunder&url=' + encodeURIComponent(hash) + '&playwindow=player';
-                    }
-                }
-                chrome.runtime.sendMessage({action: 'openurl', data: {url: url}});
+            requestOpenUrl(hash, usePrivate)
+            .done(function (url) {
                 closeLogs();
                 alertify.success('已找到云播资源，正在打开播放页面', 1000);
+                chrome.runtime.sendMessage({action: 'openurl', data: {url: url}});
             })
             .fail(function (msg) {
                 closeLogs();
