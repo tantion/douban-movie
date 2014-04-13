@@ -17270,6 +17270,7 @@ define('js/bt-tiantang', function(require, exports, module) {
 
             data = new FormData();
             data.append('action', 'download');
+            data.append('down', 'd1');
             data.append('id', params.id);
             data.append('uhash', params.uhash);
 
