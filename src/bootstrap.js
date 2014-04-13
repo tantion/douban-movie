@@ -15673,7 +15673,7 @@ define('private/bt', function (require, exports, module) {
                 var blob = new Blob([xhr.response], {type: 'application/octet-stream'});
                 dfd.resolve(blob);
             };
-            xhr.timeout = 10 * 1000;
+            xhr.timeout = 60 * 1000;
             xhr.onerror = function () {
                 dfd.reject('网络错误');
             };
@@ -17576,7 +17576,7 @@ define('js/bt-tiantang', function(require, exports, module) {
                 var blob = new Blob([xhr.response], {type: 'application/octet-stream'});
                 dfd.resolve(blob);
             };
-            xhr.timeout = 10 * 1000;
+            xhr.timeout = 60 * 1000;
             xhr.onerror = function () {
                 dfd.reject('网络错误');
             };
