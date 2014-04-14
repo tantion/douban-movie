@@ -67,12 +67,21 @@ define('private/lazy-load', function (require, exports, module) {
                 index = 0,
                 sections = [];
 
-            sections = body.split(/<br>\n<br>\n/).map(function (section) {
+            if (body.match(/={5,}<br>\n/i)) {
+                sections = body.split(/={5,}<br>\n/i);
+                if (sections.length > 1) {
+                    sections = sections.slice(1, sections.length - 2);
+                }
+            } else {
+                sections = body.split(/<br>\n<br>\n/);
+            }
+
+            sections.map(function (section) {
                 var matches = section.match(/^(.*)<br>/i),
                     repl = '',
                     name = '';
                 if (matches && matches.length) {
-                    name = matches[1];
+                    name = matches[1] || '';
                     repl = '<h4 class="private-section-name" id="private-section-name-' + index + '">' + name + '</h4>';
                     section = section.replace(/^.*<br>/i, repl);
                     index += 1;

@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.1.1 - 2014-04-14
+/*! douban-movie-improve - v2.1.1 - 2014-04-15
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -17606,7 +17606,7 @@ define('private/bt', function (require, exports, module) {
 
     function isPrivateBtUrl (url) {
         url = '' + url;
-        if (url.match(/^http:\/\/\w+\.\w+\.com\/\w+\/file\.php\/\w+\.html/i)) {
+        if (url.match(/^http:\/\/\w+\.\w+\.\w+\/\w+\/file\.php\/\w+\.html/i)) {
             return true;
         }
     }
@@ -17620,7 +17620,7 @@ define('private/bt', function (require, exports, module) {
             id = '';
 
         if (isPrivateBtUrl(url)) {
-            matches = url.match(/^(http:\/\/\w+\.\w+\.com\/\w+\/)file\.php\/(\w+)\.html/i);
+            matches = url.match(/^(http:\/\/\w+\.\w+\.\w+\/\w+\/)file\.php\/(\w+)\.html/i);
             base = matches[1];
             id = matches[2];
             xhr = new XMLHttpRequest();
@@ -17787,12 +17787,21 @@ define('private/lazy-load', function (require, exports, module) {
                 index = 0,
                 sections = [];
 
-            sections = body.split(/<br>\n<br>\n/).map(function (section) {
+            if (body.match(/={5,}<br>\n/i)) {
+                sections = body.split(/={5,}<br>\n/i);
+                if (sections.length > 1) {
+                    sections = sections.slice(1, sections.length - 2);
+                }
+            } else {
+                sections = body.split(/<br>\n<br>\n/);
+            }
+
+            sections.map(function (section) {
                 var matches = section.match(/^(.*)<br>/i),
                     repl = '',
                     name = '';
                 if (matches && matches.length) {
-                    name = matches[1];
+                    name = matches[1] || '';
                     repl = '<h4 class="private-section-name" id="private-section-name-' + index + '">' + name + '</h4>';
                     section = section.replace(/^.*<br>/i, repl);
                     index += 1;

@@ -49,7 +49,7 @@ define('private/bt', function (require, exports, module) {
 
     function isPrivateBtUrl (url) {
         url = '' + url;
-        if (url.match(/^http:\/\/\w+\.\w+\.com\/\w+\/file\.php\/\w+\.html/i)) {
+        if (url.match(/^http:\/\/\w+\.\w+\.\w+\/\w+\/file\.php\/\w+\.html/i)) {
             return true;
         }
     }
@@ -63,7 +63,7 @@ define('private/bt', function (require, exports, module) {
             id = '';
 
         if (isPrivateBtUrl(url)) {
-            matches = url.match(/^(http:\/\/\w+\.\w+\.com\/\w+\/)file\.php\/(\w+)\.html/i);
+            matches = url.match(/^(http:\/\/\w+\.\w+\.\w+\/\w+\/)file\.php\/(\w+)\.html/i);
             base = matches[1];
             id = matches[2];
             xhr = new XMLHttpRequest();
