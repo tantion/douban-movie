@@ -16496,7 +16496,7 @@ define('js/bt-baidu', function(require, exports, module) {
     function searchTitle (title) {
         var dfd = new $.Deferred(),
             items = [],
-            url = 'http://www.baidu.com/s?wd=intitle%3A"#keyword#"+torrent%20site%3Apan.baidu.com';
+            url = 'http://www.baidu.com/s?wd=intitle%3A"#keyword#"+"torrent"%20site%3Apan.baidu.com';
 
         url = url.replace('#keyword#', encodeURIComponent(title));
 
