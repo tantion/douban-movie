@@ -16528,20 +16528,18 @@ define('js/bt-baidu', function(require, exports, module) {
                         $desc = $item.find('.c-abstract').eq(0),
                         title = $.trim($desc.text()),
                         size = '',
-                        matches = title.match(/文件名:(.+) 文件大小:(.+) 分享者/);
+                        matches = title.match(/文件大小:([\w\.]+) /);
 
                     if (!matches) {
-                        matches = title.match(/^(.+) 保存至网盘 下载\(([\w\.]+)\)/);
+                        matches = title.match(/下载\(([\w\.]+)\)/);
                     }
+                    title = $.trim($link.text()).replace(/^(.+)_免费高速下载.*$/, '$1');
 
-                    if (matches && matches.length > 2) {
-                        title = matches[1];
-                        size = matches[2];
+                    if (matches && matches.length > 1) {
+                        size = matches[1];
                         if (size) {
                             title += ' ' + size;
                         }
-                    } else {
-                        title = '';
                     }
 
                     if (title) {
