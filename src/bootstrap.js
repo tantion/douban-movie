@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.2.2 - 2014-04-17
+/*! douban-movie-improve - v2.2.3 - 2014-04-18
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -17290,7 +17290,7 @@ define('js/bt-search', function(require, exports, module) {
         var subject = serializeSubject(),
             total = 0;
         async.each(providers, function (provider, fun) {
-            if (provider.name === '射手字幕') {
+            if (provider.name !== '射手字幕') {
                 provider
                 .search(subject)
                 .done(function (result, len) {

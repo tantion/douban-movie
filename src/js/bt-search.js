@@ -143,7 +143,7 @@ define('js/bt-search', function(require, exports, module) {
         var subject = serializeSubject(),
             total = 0;
         async.each(providers, function (provider, fun) {
-            if (provider.name === '射手字幕') {
+            if (provider.name !== '射手字幕') {
                 provider
                 .search(subject)
                 .done(function (result, len) {
