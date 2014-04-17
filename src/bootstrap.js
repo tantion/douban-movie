@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.2.1 - 2014-04-15
+/*! douban-movie-improve - v2.2.1 - 2014-04-17
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -17155,6 +17155,7 @@ define('js/bt-search', function(require, exports, module) {
     var $ = require('jquery'),
         dialog = null,
         m = require('mustache'),
+        async = require('async'),
         providers = [
             require('js/bt-tiantang'),
             require('js/bt-imax'),
@@ -17264,12 +17265,18 @@ define('js/bt-search', function(require, exports, module) {
         return $content;
     }
 
+    function setTotalCount ($btn, total) {
+        var text = $btn.text() || '';
+        text = text.replace(/\(.+\)/, '(' + total + ')');
+        $btn.text(text);
+    }
+
     function init () {
         if (!location.href.match(/^http:\/\/movie\.douban\.com\/subject\/\d+/)) {
             return;
         }
         /* global dui: true */
-        var $btn = $('<div><span class="pl">BT地址:</span> <a href="javascript:">打开列表</a></div>').appendTo('#info').find('a');
+        var $btn = $('<div><span class="pl">BT地址:</span> <a href="javascript:" class="movie-improve-open-link">打开列表 (..)</a></div>').appendTo('#info').find('a');
 
         $btn.on('click', function (evt) {
             evt.preventDefault();
@@ -17278,6 +17285,26 @@ define('js/bt-search', function(require, exports, module) {
             }
             dialog.setContent(initDialog());
             dialog.open();
+        });
+
+        var subject = serializeSubject(),
+            total = 0;
+        async.each(providers, function (provider, fun) {
+            if (provider.name === '射手字幕') {
+                provider
+                .search(subject)
+                .done(function (result, len) {
+                    total += len;
+                    setTotalCount($btn, total);
+                })
+                .always(function () {
+                    fun();
+                });
+            } else {
+                fun();
+            }
+        }, function (err) {
+            setTotalCount($btn, total);
         });
     }
 
