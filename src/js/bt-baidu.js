@@ -13,7 +13,7 @@ define('js/bt-baidu', function(require, exports, module) {
     function searchTitle (title) {
         var dfd = new $.Deferred(),
             items = [],
-            url = 'http://www.baidu.com/s?wd=intitle%3A"#keyword#"+"torrent"%20site%3Apan.baidu.com';
+            url = 'http://www.baidu.com/s?wd=intitle%3A%28"#keyword#"%2B"torrent"%29%20site%3Apan.baidu.com';
 
         url = url.replace('#keyword#', encodeURIComponent(title));
 
@@ -46,6 +46,10 @@ define('js/bt-baidu', function(require, exports, module) {
                         title = $.trim($desc.text()),
                         size = '',
                         matches = title.match(/文件名:(.+) 文件大小:(.+) 分享者/);
+
+                    if (!matches) {
+                        matches = title.match(/^(.+) 保存至网盘 下载\(([\w\.]+)\)/);
+                    }
 
                     if (matches && matches.length > 2) {
                         title = matches[1];
