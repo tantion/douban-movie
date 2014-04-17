@@ -2,8 +2,8 @@
     "manifest_version": 2,
 
     "name": "豆瓣电影助手",
-    "description": "让豆瓣电影支持下载bt种子。",
-    "version": "2.2.1",
+    "description": "让豆瓣电影支持下载bt种子，同时能够结合迅雷会员一键云播。",
+    "version": "2.2.2",
 
     "permissions": [
         "webRequest",
