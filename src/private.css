@@ -633,3 +633,8 @@ a.private-yunbo-login {
 a.private-yunbo-login:hover {
     text-decoration: underline !important;
 }
+
+.private-sidenav li.active {
+    background-color: #F2F0F2;
+}
+

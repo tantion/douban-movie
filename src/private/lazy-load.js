@@ -26,6 +26,12 @@ define('private/lazy-load', function (require, exports, module) {
         })
         .on('click', 'a.private-img-go', function () {
             $.magnificPopup.close();
+        })
+        .on('click', '.private-sidenav li', function () {
+            var $item = $(this);
+
+            $item.siblings().removeClass('active');
+            $item.addClass('active');
         });
     }
 

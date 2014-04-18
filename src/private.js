@@ -17746,6 +17746,12 @@ define('private/lazy-load', function (require, exports, module) {
         })
         .on('click', 'a.private-img-go', function () {
             $.magnificPopup.close();
+        })
+        .on('click', '.private-sidenav li', function () {
+            var $item = $(this);
+
+            $item.siblings().removeClass('active');
+            $item.addClass('active');
         });
     }
 
@@ -18191,7 +18197,7 @@ define('private/yun', function (require, exports, module) {
                     dfd.resolve(url);
                 }
             } else {
-                dfd.reject('需要先登录迅雷');
+                dfd.reject('云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>');
             }
         })
         .fail(function () {
