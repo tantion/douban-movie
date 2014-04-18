@@ -76,7 +76,7 @@ define('private/lazy-load', function (require, exports, module) {
                 sections = body.split(/<br>\n<br>\n/);
             }
 
-            sections.map(function (section) {
+            sections = $.map(sections, function (section) {
                 var matches = section.match(/^(.*)<br>/i),
                     repl = '',
                     name = '';

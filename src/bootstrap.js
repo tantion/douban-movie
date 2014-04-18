@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.2.3 - 2014-04-18
+/*! douban-movie-improve - v2.2.4 - 2014-04-18
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -15837,7 +15837,7 @@ define('private/lazy-load', function (require, exports, module) {
                 sections = body.split(/<br>\n<br>\n/);
             }
 
-            sections.map(function (section) {
+            sections = $.map(sections, function (section) {
                 var matches = section.match(/^(.*)<br>/i),
                     repl = '',
                     name = '';
