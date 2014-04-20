@@ -48,6 +48,12 @@ function refererHandle (details) {
 chrome.runtime.onMessage.addListener(function (message, sender, sendRespone) {
     "use strict";
 
+    var tabIndex;
+
+    if (sender && sender.tab) {
+        tabIndex = sender.tab.index + 1;
+    }
+
     if (message.action === 'cookie') {
         var name = message.data.name;
         chrome.cookies.get({url: 'http://vod.xunlei.com', name: name}, function (cookie) {
@@ -67,7 +73,7 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendRespone) {
     else if (message.action === 'openurl') {
         var href = message.data.url;
         if (href) {
-            chrome.tabs.create({url: href});
+            chrome.tabs.create({url: href, index: tabIndex});
         }
     }
 });
