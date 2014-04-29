@@ -4,7 +4,8 @@ A chrome extension for Douban Movie
 
 ## Change Log
 
-- v2.2.2 - April 17 2014
+- v2.2.6 - April 29 2014
+    - Added 66ys search
     - Added total count.
     - Fixed yunbo
     - 支持一键云播
