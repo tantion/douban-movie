@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.2.6 - 2014-04-29
+/*! douban-movie-improve - v2.2.7 - 2014-04-29
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -17210,7 +17210,7 @@ define('js/bt-tiantang', function(require, exports, module) {
         adapter = require('private/adapter'),
         alertify = require('alertify'),
         $iframe = null,
-        timeout = 30 * 1000,
+        timeout = 60 * 1000,
         SUBJECT_CACHE = {},
         ITEMS_CACHE = {};
 
@@ -17575,7 +17575,7 @@ define('private/bt', function (require, exports, module) {
                 url: url,
                 type: 'get',
                 dataType: 'text',
-                timeout: 30 * 1000
+                timeout: 60 * 1000
             })
             .done(function (data) {
                 var html = data.replace(/src=/ig, 'data-src='),

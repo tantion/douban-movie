@@ -11,7 +11,7 @@ define('js/bt-tiantang', function(require, exports, module) {
         adapter = require('private/adapter'),
         alertify = require('alertify'),
         $iframe = null,
-        timeout = 30 * 1000,
+        timeout = 60 * 1000,
         SUBJECT_CACHE = {},
         ITEMS_CACHE = {};
 

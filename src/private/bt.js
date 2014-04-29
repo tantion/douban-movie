@@ -18,7 +18,7 @@ define('private/bt', function (require, exports, module) {
                 url: url,
                 type: 'get',
                 dataType: 'text',
-                timeout: 30 * 1000
+                timeout: 60 * 1000
             })
             .done(function (data) {
                 var html = data.replace(/src=/ig, 'data-src='),
