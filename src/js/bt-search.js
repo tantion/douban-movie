@@ -12,6 +12,7 @@ define('js/bt-search', function(require, exports, module) {
         providers = [
             require('js/bt-tiantang'),
             require('js/bt-imax'),
+            require('js/bt-66ys'),
             require('js/bt-fangying'),
             require('js/bt-mee'),
             require('js/bt-baidu'),
