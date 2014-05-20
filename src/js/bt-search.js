@@ -16,6 +16,7 @@ define('js/bt-search', function(require, exports, module) {
             require('js/bt-fangying'),
             require('js/bt-mee'),
             require('js/bt-baidu'),
+            require('js/bt-iqiyi'),
             require('js/bt-shooter')
         ];
 
@@ -31,6 +32,7 @@ define('js/bt-search', function(require, exports, module) {
         subject.actors = $.trim($info.find('[rel="v:starring"]').parent().text());
         subject.year = parseInt($.trim($content.find('.year').text()).replace(/\((\d+)\)/, '$1'), 10);
         subject.imdb = $.trim($info.find('a[href^="http://www.imdb.com/title/tt"]').text());
+        subject.istv = $content.find('.episode_list').length ? true : false;
 
         return subject;
     }
