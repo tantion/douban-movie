@@ -16048,6 +16048,7 @@ define('private/yun', function (require, exports, module) {
     var $ = require('jquery'),
         hashCache = {},
         logined = false,
+        loginError = '云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>',
         tt = require('js/bt-tiantang'),
         bt = require('private/bt');
 
@@ -16070,7 +16071,7 @@ define('private/yun', function (require, exports, module) {
             })
             .done(function (data) {
                 if (data.resp.error_msg) {
-                    dfd.reject('云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>');
+                    dfd.reject(loginError);
                 } else {
                     logined = true;
                     dfd.resolve();
@@ -16238,7 +16239,7 @@ define('private/yun', function (require, exports, module) {
                     dfd.resolve(url);
                 }
             } else {
-                dfd.reject('云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>');
+                dfd.reject(loginError);
             }
         })
         .fail(function () {
@@ -16258,12 +16259,24 @@ define('private/yun', function (require, exports, module) {
             timeout: 30 * 1000
         })
         .done(function (data) {
-            var urls = (data && data.resp) ? data.resp.vodinfo_list : [],
-            url = '';
+            var resp = (data && data.resp) || {},
+                urls = resp.vodinfo_list ? resp.vodinfo_list : [],
+                error = resp.error_msg || '',
+                permit = resp.vod_permit || {},
+                url = '';
             if (urls && urls.length) {
                 dfd.resolve(urls);
             } else {
-                dfd.reject('转码未完成，无法播放');
+                if (error.indexOf('no vod permition') > -1) {
+                    if (permit.ret === 4) {
+                        error = loginError;
+                    } else {
+                        error = '不是迅雷会员帐号，无法使用云播。';
+                    }
+                } else {
+                    error = '转码未完成，无法播放';
+                }
+                dfd.reject(error);
             }
         })
         .fail(function () {
@@ -16329,17 +16342,22 @@ define('private/yun', function (require, exports, module) {
                         dataType: 'json'
                     })
                     .done(function (data) {
-                        if (data && data.resp && data.resp.res && data.resp.res.length) {
+                        var resp = (data && data.resp) || {};
+                        if (resp && resp.res && resp.res.length) {
                             dfd.resolve();
                         } else {
-                            dfd.reject('添加失败，可能是地址错误');
+                            if (resp.error_msg === 'session is wrong') {
+                                dfd.reject(loginError);
+                            } else {
+                                dfd.reject('添加失败，可能是地址错误');
+                            }
                         }
                     })
                     .fail(function () {
                         dfd.reject('网络错误');
                     });
                 } else {
-                    dfd.reject('云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>');
+                    dfd.reject(loginError);
                 }
             })
             .fail(function () {
@@ -17271,6 +17289,7 @@ define('js/bt-iqiyi', function(require, exports, module) {
             'tv.sohu.com': '搜狐视频',
             'v.qq.com': '腾讯视频',
             'www.pps.tv': 'PPS',
+            'v.pps.tv': 'PPS',
             'ipd.pps.tv': 'PPS',
             'v.youku.com': '优酷',
             'www.tudou.com': '土豆',

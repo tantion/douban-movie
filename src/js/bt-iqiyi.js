@@ -17,6 +17,7 @@ define('js/bt-iqiyi', function(require, exports, module) {
             'tv.sohu.com': '搜狐视频',
             'v.qq.com': '腾讯视频',
             'www.pps.tv': 'PPS',
+            'v.pps.tv': 'PPS',
             'ipd.pps.tv': 'PPS',
             'v.youku.com': '优酷',
             'www.tudou.com': '土豆',
