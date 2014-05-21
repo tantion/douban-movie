@@ -76,11 +76,15 @@ define('private/lazy-load', function (require, exports, module) {
             if (body.match(/={5,}<br>\n/i)) {
                 sections = body.split(/={5,}<br>\n/i);
                 if (sections.length > 1) {
-                    sections = sections.slice(1, sections.length - 2);
+                    sections = sections.slice(1, sections.length - 1);
+                    if (sections.length === 1) {
+                        sections = sections[0].split(/<br>\n<br>\n/);
+                    }
                 }
             } else {
                 sections = body.split(/<br>\n<br>\n/);
             }
+
 
             sections = $.map(sections, function (section) {
                 var matches = section.match(/^(.*)<br>/i),
