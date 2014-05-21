@@ -4,6 +4,10 @@ A chrome extension for Douban Movie
 
 ## Change Log
 
+- v2.3.0 - May 21 2014
+    - Added online play search
+    - Fixed some bug
+
 - v2.2.6 - April 29 2014
     - Added 66ys search
     - Added total count.
