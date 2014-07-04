@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.3.0 - 2014-05-21
+/*! douban-movie-improve - v2.3.0 - 2014-07-04
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -16608,14 +16608,19 @@ define('js/bt-66ys', function(require, exports, module) {
         var dfd = new $.Deferred();
 
         $.ajax({
-            url: 'http://www.url-encode-decode.com/process',
             type: 'post',
             timeout: timeout,
             dataType: 'text',
+            //url: 'http://www.url-encode-decode.com/process',
+            //data: {
+                //action: 'encode',
+                //text: txt,
+                //encoding: 'GBK'
+            //}
+            url: 'http://www.107000.com/T-UrlEncode/Defalut_files/UrlEncode.ashx',
             data: {
-                action: 'encode',
-                text: txt,
-                encoding: 'GBK'
+                t: 'jiaG',
+                v: txt
             }
         })
         .done(function (code) {
@@ -17625,11 +17630,11 @@ define('js/bt-search', function(require, exports, module) {
         async = require('async'),
         providers = [
             require('js/bt-tiantang'),
-            require('js/bt-imax'),
+            //require('js/bt-imax'),
             require('js/bt-66ys'),
-            require('js/bt-fangying'),
+            //require('js/bt-fangying'),
             require('js/bt-mee'),
-            require('js/bt-baidu'),
+            //require('js/bt-baidu'),
             require('js/bt-iqiyi'),
             require('js/bt-shooter')
         ];

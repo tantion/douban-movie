@@ -11,11 +11,11 @@ define('js/bt-search', function(require, exports, module) {
         async = require('async'),
         providers = [
             require('js/bt-tiantang'),
-            require('js/bt-imax'),
+            //require('js/bt-imax'),
             require('js/bt-66ys'),
-            require('js/bt-fangying'),
+            //require('js/bt-fangying'),
             require('js/bt-mee'),
-            require('js/bt-baidu'),
+            //require('js/bt-baidu'),
             require('js/bt-iqiyi'),
             require('js/bt-shooter')
         ];

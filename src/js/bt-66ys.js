@@ -97,14 +97,19 @@ define('js/bt-66ys', function(require, exports, module) {
         var dfd = new $.Deferred();
 
         $.ajax({
-            url: 'http://www.url-encode-decode.com/process',
             type: 'post',
             timeout: timeout,
             dataType: 'text',
+            //url: 'http://www.url-encode-decode.com/process',
+            //data: {
+                //action: 'encode',
+                //text: txt,
+                //encoding: 'GBK'
+            //}
+            url: 'http://www.107000.com/T-UrlEncode/Defalut_files/UrlEncode.ashx',
             data: {
-                action: 'encode',
-                text: txt,
-                encoding: 'GBK'
+                t: 'jiaG',
+                v: txt
             }
         })
         .done(function (code) {
