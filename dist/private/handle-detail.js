@@ -1,1 +1,0 @@
-define("private/handle-detail",function(require,a,b){"use strict";function c(){location.href.match(/\/\d+\/\d+\.html/i)&&d(document).on("mousedown",'a[href^="/p2p/"]',function(){var a=d(this),b=a.prop("href");b="http://tantion.com/private/detail.html?url="+b,a.attr("href",b)})}var d=require("jquery");b.exports={init:c}});

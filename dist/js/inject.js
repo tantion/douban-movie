@@ -1,1 +1,0 @@
-define("js/inject",function(require,a,b){"use strict";function c(a,b){var c=a;0!==c.indexOf("chrome-extension://")&&(c=chrome.extension.getURL(c));var d=document.createElement("script");d.src=c,d.type="text/javascript";for(var e in b)b.hasOwnProperty(e)&&d.setAttribute(e,b[e]);document.body.appendChild(d)}b.exports=c});

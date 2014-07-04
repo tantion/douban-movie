@@ -92,7 +92,16 @@ module.exports = function(grunt) {
         }
       }
     },
-    clean: ['dist/*', 'dist.zip'],
+    clean: {
+      all: ['dist/'],
+      build: [
+        'dist/bootstrap/',
+        'dist/js/',
+        'dist/lib/',
+        'dist/private/',
+        'dist/seajs/'
+      ]
+    },
     copy: {
       dist: {
         files: [{expand: true, cwd: 'src/', src: ['**'], dest: 'dist/'}]
@@ -202,6 +211,6 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-zip');
 
   // Default task.
-  grunt.registerTask('default', ['replace', 'clean', 'copy', 'jshint', 'concat', 'uglify', 'cssmin', 'zip']);
+  grunt.registerTask('default', ['replace', 'clean:all', 'copy', 'jshint', 'concat', 'uglify', 'cssmin', 'clean:build', 'zip']);
 
 };
