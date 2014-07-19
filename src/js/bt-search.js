@@ -11,6 +11,7 @@ define('js/bt-search', function(require, exports, module) {
         async = require('async'),
         providers = [
             require('js/bt-tiantang'),
+            require('js/bt-fish'),
             //require('js/bt-imax'),
             require('js/bt-66ys'),
             //require('js/bt-fangying'),

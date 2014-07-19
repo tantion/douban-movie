@@ -29,7 +29,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(function(details) {
     }
     return {requestHeaders: details.requestHeaders};
 },
-{urls: ["http://*/*/down.php", "http://i.vod.xunlei.com/*"]},
+{urls: ["http://*/*/down.php", "http://i.vod.xunlei.com/*", "http://www.bitfish8.com/uploads/soft/*"]},
 ["blocking", "requestHeaders"]);
 
 var urls = [];

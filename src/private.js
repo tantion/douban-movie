@@ -1,4 +1,4 @@
-/*! douban-movie-improve - v2.3.1 - 2014-07-04
+/*! douban-movie-improve - v2.3.1 - 2014-07-20
 * https://github.com/tantion/douban-movie
 * Copyright (c) 2014 tantion; Licensed MIT */
 (function(global, undefined) {
@@ -17214,7 +17214,7 @@ define('js/bt-tiantang', function(require, exports, module) {
         SUBJECT_CACHE = {},
         ITEMS_CACHE = {};
 
-    function isTiangtangUrl (url) {
+    function isLoaderUrl(url) {
         if (/^http:\/\/www\.bttiantang\.com\/download\.php/i.test(url)) {
             return true;
         }
@@ -17234,7 +17234,7 @@ define('js/bt-tiantang', function(require, exports, module) {
               '<input type="hidden" name="uhash" value="' + params.uhash + '"/>' +
               '</form>');
             if (!$iframe) {
-                $iframe = $('<iframe />').appendTo('body');
+                $iframe = $('<iframe style="display: none;" />').appendTo('body');
             }
             $iframe.html($form);
             $form.submit();
@@ -17504,7 +17504,7 @@ define('js/bt-tiantang', function(require, exports, module) {
     module.exports = {
         name: 'BT天堂',
         load: load,
-        isTiangtangUrl: isTiangtangUrl,
+        isLoaderUrl: isLoaderUrl,
         search: search
     };
 });
@@ -18012,8 +18012,10 @@ define('private/yun', function (require, exports, module) {
         hashCache = {},
         logined = false,
         loginError = '云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>',
-        tt = require('js/bt-tiantang'),
-        bt = require('private/bt');
+        bt = require('private/bt'),
+        ms = [
+            require('js/bt-tiantang')
+        ];
 
     function isInfoHash (hash) {
         if (/^\w+$/i.test(hash)) {
@@ -18083,6 +18085,7 @@ define('private/yun', function (require, exports, module) {
 
     function requestHash (url) {
         var dfd = $.Deferred(),
+            bl = null,
             loader = null;
 
         if (hashCache.hasOwnProperty(url)) {
@@ -18090,11 +18093,18 @@ define('private/yun', function (require, exports, module) {
         } else {
             hasLogin()
             .done(function () {
-                if (bt.isPrivateBtUrl(url) || tt.isTiangtangUrl(url)) {
-                    if (bt.isPrivateBtUrl(url)) {
-                        loader = bt.load(url);
+                $.each(ms, function (i, m) {
+                    if (m.isLoaderUrl(url)) {
+                        bl = m;
+                        return false;
+                    }
+                });
+
+                if (bl || bt.isPrivateBtUrl(url)) {
+                    if (bl) {
+                        loader = bl.load(url);
                     } else {
-                        loader = tt.load(url);
+                        loader = bt.load(url);
                     }
 
                     loader

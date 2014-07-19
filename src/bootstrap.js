@@ -16053,8 +16053,10 @@ define('private/yun', function (require, exports, module) {
         hashCache = {},
         logined = false,
         loginError = '云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>',
-        tt = require('js/bt-tiantang'),
-        bt = require('private/bt');
+        bt = require('private/bt'),
+        ms = [
+            require('js/bt-tiantang')
+        ];
 
     function isInfoHash (hash) {
         if (/^\w+$/i.test(hash)) {
@@ -16124,6 +16126,7 @@ define('private/yun', function (require, exports, module) {
 
     function requestHash (url) {
         var dfd = $.Deferred(),
+            bl = null,
             loader = null;
 
         if (hashCache.hasOwnProperty(url)) {
@@ -16131,11 +16134,18 @@ define('private/yun', function (require, exports, module) {
         } else {
             hasLogin()
             .done(function () {
-                if (bt.isPrivateBtUrl(url) || tt.isTiangtangUrl(url)) {
-                    if (bt.isPrivateBtUrl(url)) {
-                        loader = bt.load(url);
+                $.each(ms, function (i, m) {
+                    if (m.isLoaderUrl(url)) {
+                        bl = m;
+                        return false;
+                    }
+                });
+
+                if (bl || bt.isPrivateBtUrl(url)) {
+                    if (bl) {
+                        loader = bl.load(url);
                     } else {
-                        loader = tt.load(url);
+                        loader = bt.load(url);
                     }
 
                     loader
@@ -16517,6 +16527,7 @@ define('js/bt-66ys', function(require, exports, module) {
     "use strict";
 
     var $ = require('jquery'),
+        helper = require('js/helper'),
         m = require('mustache'),
         ITEMS_CACHE = {},
         SUBJECT_CACHE = {},
@@ -16600,39 +16611,6 @@ define('js/bt-66ys', function(require, exports, module) {
         return dfd.promise();
     }
 
-    // 千万别怨哥
-    // 可用组件 http://www.1kjs.com/lib/widget/gbk/
-    // 体验API https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder
-    // 最后决定用在线的
-    function encodeGBK (txt) {
-        var dfd = new $.Deferred();
-
-        $.ajax({
-            type: 'post',
-            timeout: timeout,
-            dataType: 'text',
-            //url: 'http://www.url-encode-decode.com/process',
-            //data: {
-                //action: 'encode',
-                //text: txt,
-                //encoding: 'GBK'
-            //}
-            url: 'http://www.107000.com/T-UrlEncode/Defalut_files/UrlEncode.ashx',
-            data: {
-                t: 'jiaG',
-                v: txt
-            }
-        })
-        .done(function (code) {
-            dfd.resolve(code);
-        })
-        .fail(function () {
-            dfd.reject();
-        });
-
-        return dfd.promise();
-    }
-
     function searchSubject (title, year, actors) {
         var dfd = new $.Deferred(),
             subjectUrl = '';
@@ -16645,7 +16623,7 @@ define('js/bt-66ys', function(require, exports, module) {
                 dfd.reject();
             }
         } else {
-            encodeGBK(title)
+            helper.encodeGBK(title)
             .done(function (keyboard) {
                 $.ajax({
                     url: 'http://www.66ys.cc/e/search/index123.php',
@@ -17252,6 +17230,241 @@ define('js/bt-fangying', function(require, exports, module) {
 
 //
 // bt 搜索提供者
+// http://www.bitfish8.com
+//
+define('js/bt-fish', function(require, exports, module) {
+    "use strict";
+
+    var $ = require('jquery'),
+        m = require('mustache'),
+        purl = require('purl'),
+        adapter = require('private/adapter'),
+        alertify = require('alertify'),
+        helper = require('js/helper'),
+        $iframe = null,
+        timeout = 60 * 1000,
+        SUBJECT_CACHE = {},
+        ITEMS_CACHE = {};
+
+    var tmpl = '{{#items}}' +
+               '<dl class="movie-improve-bt-dl">' +
+                  '<dt class="movie-improve-bt-title">' +
+                      '<a title="点击下载种子" download class="movie-improve-bt-download" href="{{href}}">{{title}}</a>' +
+                  '</dt>' +
+                  '{{#files}}' +
+                  '<dd class="movie-improve-bt-desc">{{&title}}</dd>' +
+                  '{{/files}}' +
+               '</dl>' +
+               '{{/items}}';
+
+    function renderItems (items) {
+        var content = m.render(tmpl, {items: items}),
+            $content = $(content);
+
+        $content
+        .on('mouseenter', '.movie-improve-bt-download', function (evt) {
+            $(this).tipsy({gravity: 'w', offset: 3}).tipsy('show');
+        });
+
+        return $content;
+    }
+
+    function searchSubject (title, year) {
+        var dfd = new $.Deferred(),
+            subjectUrl = '';
+
+        if (SUBJECT_CACHE.hasOwnProperty(title)) {
+            subjectUrl = SUBJECT_CACHE[title];
+            if (subjectUrl) {
+                dfd.resolve(subjectUrl);
+            } else {
+                dfd.reject();
+            }
+        } else {
+            helper.encodeGBK(title)
+            .done(function (keyword) {
+                $.ajax({
+                    url: 'http://www.bitfish8.com/plus/search.php?kwtype=0&q=#title#'.replace('#title#', keyword),
+                    type: 'GET',
+                    timeout: timeout,
+                    xhrFields: {
+                        withCredentials: true
+                    }
+                })
+                .done(function (html) {
+                    html = html.replace(/src=/ig, 'data-src=');
+
+                    var subjectUrl = '',
+                        $html = $($.parseHTML(html)),
+                        $items = $html.find('.listbox .e2 li'),
+                        items = [];
+
+                    items = $.map($items, function (item) {
+                        var $item = $(item),
+                            $title = $item.find('a').eq(1),
+                            $intro = $item.find('.intro'),
+                            name = $.trim($title.text()),
+                            href = $title.attr('href'),
+                            intro = $intro.text() || '',
+                            year = intro.replace(/.+年代：(\d+)年.+/, '$1');
+
+                        if (year.match(/\d+/)) {
+                            year = parseInt(year, 10);
+                        } else {
+                            year = 0;
+                        }
+
+                        if (name) {
+                            return {
+                                href: 'http://www.bitfish8.com' + href,
+                                title: name,
+                                year: year
+                            };
+                        }
+                    });
+
+                    // 确定最合适的那个链接
+                    if (items.length > 0) {
+                        subjectUrl = items[0].href;
+                        // 有两个以上的链接，根据年份来确定，虽然可能并不准确
+                        // 但是对于大部分同名或者包含子名的电影来说还是可以匹配的
+                        if (items.length > 1) {
+                            $.each(items, function (index, item) {
+                                if (item.year === year) {
+                                    subjectUrl = item.href;
+                                }
+                            });
+                        }
+                    }
+
+                    if (subjectUrl) {
+                        SUBJECT_CACHE[title] = subjectUrl;
+                        dfd.resolve(subjectUrl);
+                    } else {
+                        SUBJECT_CACHE[title] = subjectUrl;
+                        dfd.reject();
+                    }
+                })
+                .fail(function () {
+                    dfd.reject();
+                });
+
+            });
+        }
+
+        return dfd.promise();
+    }
+
+    function searchItems (subjectUrl) {
+        var dfd = new $.Deferred(),
+            items = null;
+
+        if (ITEMS_CACHE.hasOwnProperty(subjectUrl)) {
+            items = ITEMS_CACHE[subjectUrl];
+            if (items && items.length) {
+                dfd.resolve(items);
+            } else {
+                dfd.reject();
+            }
+        } else {
+            $.ajax({
+                url: subjectUrl,
+                type: 'GET',
+                timeout: timeout,
+                xhrFields: {
+                    withCredentials: true
+                }
+            })
+            .done(function (html) {
+                html = html.replace(/src=/ig, 'data-src=');
+                var $html = $($.parseHTML(html)),
+                    $item = $html.find('.downurllist a').eq(0),
+                    $title = $html.find('.title h2'),
+                    name = $.trim($title.text()),
+                    href = $item.attr('href');
+
+
+                if (!href) {
+                    ITEMS_CACHE[subjectUrl] = [];
+                    dfd.reject();
+                    return;
+                }
+
+                $.ajax({
+                    url: 'http://www.bitfish8.com' + href,
+                    type: 'GET',
+                    timeout: timeout
+                })
+                .done(function (html) {
+                    html = html.replace(/src=/ig, 'data-src=');
+                    var $html = $($.parseHTML(html)),
+                        $item = $html.find('li a:contains(本地下载)'),
+                        url = $item.attr('href'),
+                        items = [];
+
+                    if (url) {
+                        items.push({
+                            title: name,
+                            href: 'http://www.bitfish8.com' + url
+                        });
+                    }
+
+                    ITEMS_CACHE[subjectUrl] = items;
+                    if (items.length) {
+                        dfd.resolve(items);
+                    } else {
+                        dfd.reject();
+                    }
+                })
+                .fail(function () {
+                    dfd.reject();
+                });
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+        }
+
+        return dfd.promise();
+    }
+
+    function search (subject) {
+        var dfd = new $.Deferred(),
+            title = subject.title2;
+
+        if (!title) {
+            dfd.reject();
+        } else {
+            dfd.notify('正在加载搜索结果，服务器网络慢的话需要等待几秒...');
+
+            searchSubject(title, subject.year)
+            .done(function (subjectUrl) {
+                dfd.notify('马上就好，正在加载BT地址...');
+
+                searchItems(subjectUrl)
+                .done(function (items) {
+                    dfd.resolve(renderItems(items), items.length);
+                })
+                .fail(function () {
+                    dfd.reject();
+                });
+            })
+            .fail(function () {
+                dfd.reject();
+            });
+        }
+
+        return dfd.promise();
+    }
+
+    module.exports = {
+        name: '比特鱼',
+        search: search
+    };
+});
+
+//
+// bt 搜索提供者
 // http://imax.im
 //
 define('js/bt-imax', function(require, exports, module) {
@@ -17761,6 +17974,7 @@ define('js/bt-search', function(require, exports, module) {
         async = require('async'),
         providers = [
             require('js/bt-tiantang'),
+            require('js/bt-fish'),
             //require('js/bt-imax'),
             require('js/bt-66ys'),
             //require('js/bt-fangying'),
@@ -18224,7 +18438,7 @@ define('js/bt-tiantang', function(require, exports, module) {
         SUBJECT_CACHE = {},
         ITEMS_CACHE = {};
 
-    function isTiangtangUrl (url) {
+    function isLoaderUrl(url) {
         if (/^http:\/\/www\.bttiantang\.com\/download\.php/i.test(url)) {
             return true;
         }
@@ -18244,7 +18458,7 @@ define('js/bt-tiantang', function(require, exports, module) {
               '<input type="hidden" name="uhash" value="' + params.uhash + '"/>' +
               '</form>');
             if (!$iframe) {
-                $iframe = $('<iframe />').appendTo('body');
+                $iframe = $('<iframe style="display: none;" />').appendTo('body');
             }
             $iframe.html($form);
             $form.submit();
@@ -18514,8 +18728,56 @@ define('js/bt-tiantang', function(require, exports, module) {
     module.exports = {
         name: 'BT天堂',
         load: load,
-        isTiangtangUrl: isTiangtangUrl,
+        isLoaderUrl: isLoaderUrl,
         search: search
+    };
+});
+
+//
+// helper
+//
+define('js/helper', function(require, exports, module) {
+    "use strict";
+
+    var $ = require('jquery');
+
+    // 千万别怨哥
+    // 可用组件 http://www.1kjs.com/lib/widget/gbk/
+    // 体验API https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder
+    // 最后决定用在线的
+    function encodeGBK (txt) {
+        var dfd = new $.Deferred();
+
+        $.ajax({
+            type: 'post',
+            timeout: 30 * 1000,
+            dataType: 'text',
+            //url: 'http://www.url-encode-decode.com/process',
+            //data: {
+                //action: 'encode',
+                //text: txt,
+                //encoding: 'GBK'
+            //}
+            url: 'http://www.107000.com/T-UrlEncode/Defalut_files/UrlEncode.ashx',
+            data: {
+                t: 'jiaG',
+                v: txt
+            }
+        })
+        .done(function (code) {
+            dfd.resolve(code);
+        })
+        .fail(function () {
+            dfd.reject();
+        });
+
+        return dfd.promise();
+    }
+
+
+
+    module.exports = {
+        encodeGBK: encodeGBK
     };
 });
 
