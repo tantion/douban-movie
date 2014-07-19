@@ -4,6 +4,10 @@ A chrome extension for Douban Movie
 
 ## Change Log
 
+- v2.3.5 - july 20 2014
+    - Added bitfish
+    - Added btbook
+
 - v2.3.0 - May 21 2014
     - Added online play search
     - Fixed some bug
