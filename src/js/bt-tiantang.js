@@ -15,7 +15,7 @@ define('js/bt-tiantang', function(require, exports, module) {
         SUBJECT_CACHE = {},
         ITEMS_CACHE = {};
 
-    function isTiangtangUrl (url) {
+    function isLoaderUrl(url) {
         if (/^http:\/\/www\.bttiantang\.com\/download\.php/i.test(url)) {
             return true;
         }
@@ -35,7 +35,7 @@ define('js/bt-tiantang', function(require, exports, module) {
               '<input type="hidden" name="uhash" value="' + params.uhash + '"/>' +
               '</form>');
             if (!$iframe) {
-                $iframe = $('<iframe />').appendTo('body');
+                $iframe = $('<iframe style="display: none;" />').appendTo('body');
             }
             $iframe.html($form);
             $form.submit();
@@ -305,7 +305,7 @@ define('js/bt-tiantang', function(require, exports, module) {
     module.exports = {
         name: 'BT天堂',
         load: load,
-        isTiangtangUrl: isTiangtangUrl,
+        isLoaderUrl: isLoaderUrl,
         search: search
     };
 });

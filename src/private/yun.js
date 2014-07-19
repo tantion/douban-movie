@@ -8,8 +8,10 @@ define('private/yun', function (require, exports, module) {
         hashCache = {},
         logined = false,
         loginError = '云播需要 <a href="http://vod.xunlei.com" class="private-yunbo-login" target="_blank">登录迅雷会员</a>',
-        tt = require('js/bt-tiantang'),
-        bt = require('private/bt');
+        bt = require('private/bt'),
+        ms = [
+            require('js/bt-tiantang')
+        ];
 
     function isInfoHash (hash) {
         if (/^\w+$/i.test(hash)) {
@@ -79,6 +81,7 @@ define('private/yun', function (require, exports, module) {
 
     function requestHash (url) {
         var dfd = $.Deferred(),
+            bl = null,
             loader = null;
 
         if (hashCache.hasOwnProperty(url)) {
@@ -86,11 +89,18 @@ define('private/yun', function (require, exports, module) {
         } else {
             hasLogin()
             .done(function () {
-                if (bt.isPrivateBtUrl(url) || tt.isTiangtangUrl(url)) {
-                    if (bt.isPrivateBtUrl(url)) {
-                        loader = bt.load(url);
+                $.each(ms, function (i, m) {
+                    if (m.isLoaderUrl(url)) {
+                        bl = m;
+                        return false;
+                    }
+                });
+
+                if (bl || bt.isPrivateBtUrl(url)) {
+                    if (bl) {
+                        loader = bl.load(url);
                     } else {
-                        loader = tt.load(url);
+                        loader = bt.load(url);
                     }
 
                     loader
