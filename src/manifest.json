@@ -27,6 +27,7 @@
     "background": {
         "persistent": true,
         "scripts": [
+            "gbk.js",
             "background.js"
         ]
     },
